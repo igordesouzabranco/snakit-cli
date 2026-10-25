@@ -5,6 +5,7 @@
 // com o Node.js, permitindo rodar `devkit` direto no terminal.
 
 import { Command } from 'commander';
+import { comandoCommit } from '../src/commands/commit.js';
 
 // Cria o programa principal e registra os comandos nele.
 const program = new Command();
@@ -13,6 +14,9 @@ program
   .name('devkit')
   .description('CLI com scaffolder de projetos e gerador de mensagens de commit.')
   .version('0.1.0');
+
+// Comandos da CLI ficam em src/commands/ e são registrados aqui.
+program.addCommand(comandoCommit());
 
 // Comando de teste da Etapa 1: só valida que o binário está instalado e rodando.
 program
@@ -27,4 +31,6 @@ program.action(() => {
   program.help();
 });
 
-program.parse();
+// parseAsync (e não parse) porque as ações podem ser async — o inquirer
+// devolve uma Promise quando abre o menu interativo.
+await program.parseAsync(process.argv);
