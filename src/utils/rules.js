@@ -3,7 +3,7 @@
 // Não chama git, não imprime nada, não lê arquivo — por isso é a parte
 // mais fácil de testar (ver test/rules.test.js na Etapa 6).
 
-// Verbos e palavras por idioma. `idioma` vem do .devkitrc.json e só muda
+// Verbos e palavras por idioma. `idioma` vem do .snakitrc.json e só muda
 // a MENSAGEM de commit — a interface da CLI continua em português.
 const TEXTOS = {
   'pt-BR': {

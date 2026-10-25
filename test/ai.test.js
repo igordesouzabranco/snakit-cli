@@ -17,7 +17,7 @@ import {
 
 after(() => {
   delete process.env.ANTHROPIC_API_KEY;
-  delete process.env.DEVKIT_MODEL;
+  delete process.env.SNAKIT_MODEL;
 });
 
 describe('ehArquivoExcluido — o que NUNCA sai da máquina', () => {
@@ -161,7 +161,7 @@ describe('montarPrompt', () => {
     assert.ok(baixo.includes('72 caracteres'));
   });
 
-  test('respeita o idioma pedido no .devkitrc.json', () => {
+  test('respeita o idioma pedido no .snakitrc.json', () => {
     assert.ok(montarPrompt({ branch: 'main', diff: 'x', idioma: 'en' }).includes('Idioma da resposta: en'));
   });
 
@@ -235,11 +235,11 @@ describe('configuração por variável de ambiente', () => {
     delete process.env.ANTHROPIC_API_KEY;
   });
 
-  test('DEVKIT_MODEL sobrescreve o modelo padrão', () => {
-    delete process.env.DEVKIT_MODEL;
+  test('SNAKIT_MODEL sobrescreve o modelo padrão', () => {
+    delete process.env.SNAKIT_MODEL;
     assert.equal(obterModelo(), 'claude-haiku-5-5');
-    process.env.DEVKIT_MODEL = 'claude-sonnet-5-5';
+    process.env.SNAKIT_MODEL = 'claude-sonnet-5-5';
     assert.equal(obterModelo(), 'claude-sonnet-5-5');
-    delete process.env.DEVKIT_MODEL;
+    delete process.env.SNAKIT_MODEL;
   });
 });

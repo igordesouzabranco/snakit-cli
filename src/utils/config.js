@@ -1,5 +1,5 @@
 // src/utils/config.js
-// Lê o arquivo `.devkitrc.json` da pasta onde a CLI foi rodada.
+// Lê o arquivo `.snakitrc.json` da pasta onde a CLI foi rodada.
 //
 // A configuração é OPCIONAL: sem arquivo, tudo funciona com os padrões.
 // Com arquivo quebrado, avisamos e continuamos com os padrões — nunca
@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { IDIOMAS_SUPORTADOS } from './rules.js';
 
-export const ARQUIVO_CONFIG = '.devkitrc.json';
+export const ARQUIVO_CONFIG = '.snakitrc.json';
 
 const PADRAO = {
   idioma: 'pt-BR',

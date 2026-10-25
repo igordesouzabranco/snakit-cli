@@ -1,5 +1,5 @@
 // src/commands/new.js
-// `devkit new <nome>` — cria uma pasta nova a partir de um template.
+// `snakit new <nome>` — cria uma pasta nova a partir de um template.
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -50,9 +50,9 @@ export function comandoNew() {
       'after',
       `
 Exemplos:
-  $ devkit new minha-loja                          pergunta o template e instala tudo
-  $ devkit new minha-loja --no-install             só monta a estrutura
-  $ devkit new minha-loja --no-install --no-git    só monta a estrutura, sem git`,
+  $ snakit new minha-loja                          pergunta o template e instala tudo
+  $ snakit new minha-loja --no-install             só monta a estrutura
+  $ snakit new minha-loja --no-install --no-git    só monta a estrutura, sem git`,
     )
     .action(async (nome, opcoes) => {
       try {

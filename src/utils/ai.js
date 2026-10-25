@@ -1,5 +1,5 @@
 // src/utils/ai.js
-// Modo IA do `devkit commit`.
+// Modo IA do `snakit commit`.
 //
 // Importante sobre custo/instalação:
 // - Nada aqui roda por padrão. A IA SÓ é usada se você passar `--ai`.
@@ -50,9 +50,9 @@ export function obterChave() {
   return chave === '' ? null : chave;
 }
 
-/** Modelo: variável DEVKIT_MODEL, ou o padrão da casa. */
+/** Modelo: variável SNAKIT_MODEL, ou o padrão da casa. */
 export function obterModelo() {
-  return (process.env.DEVKIT_MODEL ?? '').trim() || MODELO_PADRAO;
+  return (process.env.SNAKIT_MODEL ?? '').trim() || MODELO_PADRAO;
 }
 
 function nomeBase(caminho) {
@@ -104,7 +104,7 @@ export function filtrarDiff(diff) {
 export function truncarDiff(texto, limite = LIMITE_DIFF) {
   if (texto.length <= limite) return { texto, truncado: false };
   return {
-    texto: `${texto.slice(0, limite)}\n\n[... diff truncado pelo devkit ...]`,
+    texto: `${texto.slice(0, limite)}\n\n[... diff truncado pelo snakit ...]`,
     truncado: true,
   };
 }

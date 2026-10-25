@@ -1,5 +1,5 @@
 // src/commands/commit.js
-// `devkit commit` — lê o stage, sugere uma mensagem e só commita depois
+// `snakit commit` — lê o stage, sugere uma mensagem e só commita depois
 // que a pessoa confirmar.
 //
 // Duas fontes de sugestão:
@@ -148,9 +148,9 @@ export function comandoCommit() {
       'after',
       `
 Exemplos:
-  $ devkit commit --dry-run   só mostra a sugestão, não commita
-  $ devkit commit --yes       aceita a sugestão e commita na hora
-  $ devkit commit --ai        sugere pela IA (grátis para as regras locais)`,
+  $ snakit commit --dry-run   só mostra a sugestão, não commita
+  $ snakit commit --yes       aceita a sugestão e commita na hora
+  $ snakit commit --ai        sugere pela IA (grátis para as regras locais)`,
     )
     .action(async (opcoes) => {
       try {
@@ -167,7 +167,7 @@ Exemplos:
         const arquivos = getStagedFiles();
         if (arquivos.length === 0) {
           return falhar(
-            'Nada encontrado no stage. Rode `git add <arquivos>` antes de usar o devkit commit.',
+            'Nada encontrado no stage. Rode `git add <arquivos>` antes de usar o snakit commit.',
           );
         }
 
@@ -176,7 +176,7 @@ Exemplos:
         let mensagem = null;
         let origem = 'regras locais';
 
-        // --ai liga a IA; .devkitrc.json {"useAi": true} também liga.
+        // --ai liga a IA; .snakitrc.json {"useAi": true} também liga.
         const usarIA = opcoes.ai || config.useAi;
         if (usarIA) {
           const gerada = await gerarComIA(arquivos, branch, opcoes, config);

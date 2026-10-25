@@ -1,22 +1,40 @@
 {
-  "name": "devkit",
-  "version": "0.1.0",
+  "name": "snakit",
+  "version": "1.0.0",
   "description": "CLI com scaffolder de projetos e gerador de mensagens de commit no padrão Conventional Commits.",
   "type": "module",
   "bin": {
-    "devkit": "./bin/devkit.js"
+    "snakit": "./bin/snakit.js"
   },
   "scripts": {
-    "start": "node bin/devkit.js",
+    "start": "node bin/snakit.js",
     "test": "node --test"
   },
+  "files": [
+    "bin",
+    "src"
+  ],
   "keywords": [
     "cli",
     "scaffolder",
+    "scaffold",
+    "generator",
+    "boilerplate",
     "commit",
     "conventional-commits",
-    "generator"
+    "git",
+    "commit-message",
+    "anthropic",
+    "claude"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igordesouzabranco/snakit-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/igordesouzabranco/snakit-cli/issues"
+  },
+  "homepage": "https://github.com/igordesouzabranco/snakit-cli#readme",
   "license": "MIT",
   "engines": {
     "node": ">=18"

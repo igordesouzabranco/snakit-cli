@@ -1,5 +1,5 @@
 // test/config.test.js
-// Testa a leitura do .devkitrc.json — incluindo arquivo quebrado,
+// Testa a leitura do .snakitrc.json — incluindo arquivo quebrado,
 // para garantir que config ruim nunca derruba a CLI.
 
 import { test, describe, after } from 'node:test';
@@ -12,7 +12,7 @@ import { carregarConfig, ARQUIVO_CONFIG } from '../src/utils/config.js';
 const temporarias = [];
 
 function pastaComConfig(conteudo) {
-  const pasta = mkdtempSync(path.join(tmpdir(), 'devkit-config-'));
+  const pasta = mkdtempSync(path.join(tmpdir(), 'snakit-config-'));
   temporarias.push(pasta);
   if (conteudo !== undefined) writeFileSync(path.join(pasta, ARQUIVO_CONFIG), conteudo);
   return pasta;

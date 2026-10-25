@@ -2,19 +2,27 @@
 
 // Ponto de entrada da CLI.
 // A linha acima (shebang) diz ao sistema operacional para executar este arquivo
-// com o Node.js, permitindo rodar `devkit` direto no terminal.
+// com o Node.js, permitindo rodar `snakit` direto no terminal.
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { comandoCommit } from '../src/commands/commit.js';
 import { comandoNew } from '../src/commands/new.js';
+
+// Lê a versão direto do package.json: assim nunca sobra versão divergente
+// entre o `--version` e o que foi publicado no npm.
+const aqui = path.dirname(fileURLToPath(import.meta.url));
+const pacote = JSON.parse(readFileSync(path.join(aqui, '..', 'package.json'), 'utf8'));
 
 // Cria o programa principal e registra os comandos nele.
 const program = new Command();
 
 program
-  .name('devkit')
+  .name('snakit')
   .description('CLI com scaffolder de projetos e gerador de mensagens de commit.')
-  .version('0.1.0');
+  .version(pacote.version);
 
 // Comandos da CLI ficam em src/commands/ e são registrados aqui.
 program.addCommand(comandoCommit());
@@ -31,7 +39,7 @@ program
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
 // fazendo o mesmo, ele também engoliria comandos desconhecidos como
-// `devkit inventado` e o exit code sairia 0 em vez de 1.
+// `snakit inventado` e o exit code sairia 0 em vez de 1.
 if (process.argv.length <= 2) {
   program.help();
 }

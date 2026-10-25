@@ -44,7 +44,7 @@ export function validarNomeProjeto(nome) {
 }
 
 // Catálogo dos templates: nome amigável para o menu/commit + descrição.
-// A ordem define a ordem do menu do `devkit new`.
+// A ordem define a ordem do menu do `snakit new`.
 const CATALOGO = [
   { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)' },
   { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite' },
@@ -53,7 +53,7 @@ const CATALOGO = [
 
 /**
  * Lista os templates disponíveis: os embutidos em src/templates/ + os que o
- * `.devkitrc.json` declarar em "templatesExtras".
+ * `.snakitrc.json` declarar em "templatesExtras".
  * Devolve [{ valor, nome, descricao, pasta? }].
  */
 export function listarTemplates(config = {}) {

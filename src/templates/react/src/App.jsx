@@ -5,7 +5,7 @@ export default function App() {
   return (
     <main style={estilo}>
       <h1>{{nome}}</h1>
-      <p>Projeto criado com devkit.</p>
+      <p>Projeto criado com snakit.</p>
     </main>
   );
 }

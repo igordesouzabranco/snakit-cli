@@ -17,7 +17,7 @@ import {
 const temporarias = [];
 
 /** Cria uma pasta descartável e guarda para limpar no final. */
-function pastaTemporaria(prefixo = 'devkit-test-') {
+function pastaTemporaria(prefixo = 'snakit-test-') {
   const pasta = mkdtempSync(path.join(tmpdir(), prefixo));
   temporarias.push(pasta);
   return pasta;

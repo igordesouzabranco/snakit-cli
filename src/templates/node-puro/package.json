@@ -1,7 +1,7 @@
 {
   "name": "{{nome}}",
   "version": "1.0.0",
-  "description": "Projeto {{nome}} criado com devkit",
+  "description": "Projeto {{nome}} criado com snakit",
   "type": "module",
   "main": "index.js",
   "scripts": {

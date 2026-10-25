@@ -1,7 +1,7 @@
 {
   "name": "{{nome}}",
   "version": "1.0.0",
-  "description": "API {{nome}} criada com devkit",
+  "description": "API {{nome}} criada com snakit",
   "type": "module",
   "main": "app.js",
   "scripts": {
