@@ -28,14 +28,6 @@ program
 program.addCommand(comandoCommit());
 program.addCommand(comandoNew());
 
-// Comando de teste da Etapa 1: só valida que o binário está instalado e rodando.
-program
-  .command('ola')
-  .description('Comando de teste: imprime uma saudação.')
-  .action(() => {
-    console.log('olá');
-  });
-
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
 // fazendo o mesmo, ele também engoliria comandos desconhecidos como
