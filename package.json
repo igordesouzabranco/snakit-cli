@@ -1,0 +1,29 @@
+{
+  "name": "devkit",
+  "version": "0.1.0",
+  "description": "CLI com scaffolder de projetos e gerador de mensagens de commit no padrão Conventional Commits.",
+  "type": "module",
+  "bin": {
+    "devkit": "./bin/devkit.js"
+  },
+  "scripts": {
+    "start": "node bin/devkit.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "cli",
+    "scaffolder",
+    "commit",
+    "conventional-commits",
+    "generator"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "inquirer": "^9.3.0"
+  }
+}
