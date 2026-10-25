@@ -1,6 +1,6 @@
 {
   "name": "snakit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI com scaffolder de projetos e gerador de mensagens de commit no padrão Conventional Commits.",
   "type": "module",
   "bin": {
