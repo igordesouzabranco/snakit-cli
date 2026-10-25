@@ -1,0 +1,11 @@
+{
+  "name": "{{nome}}",
+  "version": "1.0.0",
+  "description": "Projeto {{nome}} criado com devkit",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "license": "MIT"
+}
