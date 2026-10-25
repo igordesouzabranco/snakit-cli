@@ -43,21 +43,26 @@ export function validarNomeProjeto(nome) {
   return { ok: true, nome: nomeLimpo };
 }
 
-/** Lista os nomes das pastas disponíveis em src/templates/. */
-export function listarTemplates() {
-  return readdirSync(RAIZ_TEMPLATES, { withFileTypes: true })
-    .filter((item) => item.isDirectory())
-    .map((item) => item.name);
-}
+// Catálogo dos templates: nome amigável para o menu/commit + descrição.
+// A ordem define a ordem do menu do `devkit new`.
+const CATALOGO = [
+  { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)' },
+  { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite' },
+  { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)' },
+];
 
-/** Explica, em português, um template a partir do nome da pasta. */
-export function descreverTemplate(nome) {
-  const descricoes = {
-    'node-puro': 'Node.js puro (index.js + package.json)',
-    'express-mvc': 'Express com estrutura MVC (controllers/, models/, routes/)',
-    react: 'React mínimo com Vite',
-  };
-  return descricoes[nome] ?? nome;
+/**
+ * Lista os templates que existem de fato em src/templates/.
+ * Devolve [{ valor, nome, descricao }].
+ */
+export function listarTemplates() {
+  const pastas = new Set(
+    readdirSync(RAIZ_TEMPLATES, { withFileTypes: true })
+      .filter((item) => item.isDirectory())
+      .map((item) => item.name),
+  );
+
+  return CATALOGO.filter((item) => pastas.has(item.valor));
 }
 
 /**

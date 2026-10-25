@@ -1,0 +1,15 @@
+{
+  "name": "{{nome}}",
+  "version": "1.0.0",
+  "description": "API {{nome}} criada com devkit",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "license": "MIT"
+}

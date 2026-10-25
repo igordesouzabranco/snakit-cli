@@ -6,6 +6,7 @@
 
 import { Command } from 'commander';
 import { comandoCommit } from '../src/commands/commit.js';
+import { comandoNew } from '../src/commands/new.js';
 
 // Cria o programa principal e registra os comandos nele.
 const program = new Command();
@@ -17,6 +18,7 @@ program
 
 // Comandos da CLI ficam em src/commands/ e são registrados aqui.
 program.addCommand(comandoCommit());
+program.addCommand(comandoNew());
 
 // Comando de teste da Etapa 1: só valida que o binário está instalado e rodando.
 program

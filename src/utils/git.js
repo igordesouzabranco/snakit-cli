@@ -107,6 +107,11 @@ export function getCurrentBranch(dir = process.cwd()) {
   }
 }
 
+/** Manda tudo que mudou na pasta para o stage (`git add -A`). */
+export function add(dir = process.cwd()) {
+  return executarGit('add -A', { dir });
+}
+
 /**
  * Cria o commit com a mensagem informada.
  * Usamos `git commit -F -`, que lê a mensagem do stdin: assim a mensagem
