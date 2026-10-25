@@ -9,7 +9,7 @@ Dois comandos, nada de mágica:
 | `snakit new <nome>` | Cria uma pasta nova a partir de um template, com `git init` e `npm install`. |
 | `snakit commit` | Lê o `git diff --staged` e sugere uma mensagem de commit. |
 
-**Tudo funciona offline e de graça.** A IA é opcional e só roda se você pedir com `--ai`.
+**O `snakit commit` funciona offline e de graça.** O `snakit new` precisa de internet apenas para o `npm install` (use `--no-install` para evitar). A IA é opcional e só roda se você pedir com `--ai`.
 
 ---
 
@@ -37,6 +37,8 @@ npm link          # o comando `snakit` passa a apontar para a sua cópia
 ## `snakit new <nome>`
 
 Pergunta qual template usar, copia a pasta, troca os `{{nome}}` pelos valores reais e, por padrão, roda `git init` → `npm install` → primeiro commit.
+
+O `npm install` precisa de conexão com a internet; use `--no-install` para montar só a estrutura, sem baixar dependências.
 
 ```bash
 snakit new minha-loja
