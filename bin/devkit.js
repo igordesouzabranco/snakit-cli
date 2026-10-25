@@ -28,10 +28,13 @@ program
     console.log('olá');
   });
 
-// Sem subcomando, mostra a ajuda em vez de falhar silenciosamente.
-program.action(() => {
+// Sem nenhum argumento, mostra a ajuda (sai com 0).
+// Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
+// fazendo o mesmo, ele também engoliria comandos desconhecidos como
+// `devkit inventado` e o exit code sairia 0 em vez de 1.
+if (process.argv.length <= 2) {
   program.help();
-});
+}
 
 // parseAsync (e não parse) porque as ações podem ser async — o inquirer
 // devolve uma Promise quando abre o menu interativo.

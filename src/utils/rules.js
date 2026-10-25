@@ -3,6 +3,37 @@
 // Não chama git, não imprime nada, não lê arquivo — por isso é a parte
 // mais fácil de testar (ver test/rules.test.js na Etapa 6).
 
+// Verbos e palavras por idioma. `idioma` vem do .devkitrc.json e só muda
+// a MENSAGEM de commit — a interface da CLI continua em português.
+const TEXTOS = {
+  'pt-BR': {
+    feat: 'adiciona',
+    fix: 'corrige',
+    docs: 'atualiza',
+    chore: 'atualiza',
+    refactor: 'atualiza',
+    test: 'atualiza',
+    remocao: 'remove',
+    plural: 'arquivos',
+  },
+  en: {
+    feat: 'add',
+    fix: 'fix',
+    docs: 'update',
+    chore: 'update',
+    refactor: 'update',
+    test: 'update',
+    remocao: 'remove',
+    plural: 'files',
+  },
+};
+
+export const IDIOMAS_SUPORTADOS = Object.keys(TEXTOS);
+
+function textosDe(idioma) {
+  return TEXTOS[idioma] ?? TEXTOS['pt-BR'];
+}
+
 // Padrões que tratamos como "arquivo de configuração" da regra `chore`.
 // O enunciado diz "configs" sem detalhar; estes são os mais comuns.
 const PADROES_DE_CONFIGURACAO = [
@@ -92,22 +123,26 @@ export function descobrirEscopo(arquivos) {
 }
 
 /**
- * Verbo no imperativo, em português.
- * - Todo arquivo removido → "remove" (não há outra leitura possível).
+ * Verbo no imperativo.
+ * - Todo arquivo removido → remoção (não há outra leitura possível).
  * - `feat` e `fix` descrevem a intenção, então o tipo manda.
  * - Nos demais casos o que aconteceu com o arquivo é mais informativo:
  *   arquivo novo é "adiciona", arquivo mexido é "atualiza".
  * Assim `feat` nunca sai como "atualiza", mesmo com mudanças mistas.
  */
-function descobrirVerbo(arquivos, type) {
-  const todosRemovidos = arquivos.every((item) => item.status === 'D');
-  if (todosRemovidos) return 'remove';
+function descobrirVerbo(arquivos, type, idioma) {
+  const textos = textosDe(idioma);
 
-  if (type === 'feat') return 'adiciona';
-  if (type === 'fix') return 'corrige';
+  const todosRemovidos = arquivos.every((item) => item.status === 'D');
+  if (todosRemovidos) return textos.remocao;
+
+  if (type === 'feat') return textos.feat;
+  if (type === 'fix') return textos.fix;
 
   const todosNovos = arquivos.every((item) => item.status === 'A');
-  return todosNovos ? 'adiciona' : 'atualiza';
+  if (todosNovos) return textos.feat;
+
+  return textos[type] ?? textos.chore;
 }
 
 /**
@@ -115,10 +150,11 @@ function descobrirVerbo(arquivos, type) {
  * Um arquivo → usa o nome dele sem extensão; vários → conta.
  * Ex.: "adiciona userController", "remove 3 arquivos".
  */
-export function criarDescricao(arquivos, type) {
+export function criarDescricao(arquivos, type, idioma = 'pt-BR') {
   if (arquivos.length === 0) return '';
 
-  const verbo = descobrirVerbo(arquivos, type);
+  const textos = textosDe(idioma);
+  const verbo = descobrirVerbo(arquivos, type, idioma);
 
   if (arquivos.length === 1) {
     const base = baseDoArquivo(arquivos[0].file);
@@ -128,7 +164,7 @@ export function criarDescricao(arquivos, type) {
     return `${verbo} ${nome}`;
   }
 
-  return `${verbo} ${arquivos.length} arquivos`;
+  return `${verbo} ${arquivos.length} ${textos.plural}`;
 }
 
 /** Monta a linha final: `tipo(escopo): descrição` ou `tipo: descrição`. */
@@ -137,9 +173,9 @@ export function montarMensagem({ type, scope, description }) {
 }
 
 /** Junta todas as decisões em um único objeto pronto para virar mensagem. */
-export function gerarSugestao(arquivos, branch = '') {
+export function gerarSugestao(arquivos, branch = '', idioma = 'pt-BR') {
   const type = descobrirTipo(arquivos, branch);
   const scope = descobrirEscopo(arquivos);
-  const description = criarDescricao(arquivos, type);
+  const description = criarDescricao(arquivos, type, idioma);
   return { type, scope, description, message: montarMensagem({ type, scope, description }) };
 }

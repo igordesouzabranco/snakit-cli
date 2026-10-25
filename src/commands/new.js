@@ -10,19 +10,22 @@ import inquirer from 'inquirer';
 import { isGitInstalled, init, add, commit } from '../utils/git.js';
 import { validarNomeProjeto, listarTemplates, copiarTemplate, substituirPlaceholders } from '../utils/files.js';
 import { montarMensagem } from '../utils/rules.js';
+import { carregarConfig } from '../utils/config.js';
 
 function falhar(mensagem) {
   console.error(chalk.red(`✖ ${mensagem}`));
   process.exitCode = 1;
 }
 
-/** Roda `npm install` mostrando a saída na tela. Não é fatal se falhar. */
+/** Roda `npm install` mostrando a saída na tela. Falha não derruba o
+ *  scaffold, mas sai com código 1 — erro é erro. */
 function instalarDependencias(destino) {
   try {
     execSync('npm install', { cwd: destino, stdio: 'inherit' });
     return true;
   } catch {
-    console.log(chalk.yellow('⚠ `npm install` falhou. Entre na pasta e rode manualmente.'));
+    console.error(chalk.red('✖ `npm install` falhou. Rode manualmente dentro da pasta.'));
+    process.exitCode = 1;
     return false;
   }
 }
@@ -43,8 +46,19 @@ export function comandoNew() {
     .description('Cria um projeto novo a partir de um template.')
     .option('--no-install', 'não roda npm install')
     .option('--no-git', 'não roda git init nem o primeiro commit')
+    .addHelpText(
+      'after',
+      `
+Exemplos:
+  $ devkit new minha-loja                          pergunta o template e instala tudo
+  $ devkit new minha-loja --no-install             só monta a estrutura
+  $ devkit new minha-loja --no-install --no-git    só monta a estrutura, sem git`,
+    )
     .action(async (nome, opcoes) => {
       try {
+        const config = carregarConfig();
+        if (config.aviso) console.log(chalk.yellow(`• ${config.aviso}`));
+
         const validacao = validarNomeProjeto(nome);
         if (!validacao.ok) return falhar(validacao.erro);
 
@@ -53,7 +67,7 @@ export function comandoNew() {
           return falhar(`A pasta "${destino}" já existe. Escolha outro nome ou apague a pasta.`);
         }
 
-        const templates = listarTemplates();
+        const templates = listarTemplates(config);
         if (templates.length === 0) return falhar('Nenhum template encontrado em src/templates/.');
 
         const { escolhido } = await inquirer.prompt([
@@ -65,7 +79,7 @@ export function comandoNew() {
           },
         ]);
 
-        copiarTemplate(escolhido.valor, destino);
+        copiarTemplate(escolhido.valor, destino, config);
         const alterados = substituirPlaceholders(destino, { nome: validacao.nome });
         console.log(
           chalk.green(`✔ Projeto "${validacao.nome}" criado com o template ${escolhido.nome} (${alterados} arquivos ajustados).`),

@@ -152,13 +152,17 @@ describe('montarPrompt', () => {
     assert.ok(prompt.includes('UMA única mensagem'));
   });
 
-  test('pede português, imperativo e no máximo 72 caracteres', () => {
+  test('pede idioma, imperativo e no máximo 72 caracteres', () => {
     //toLowerCase: a regra pode aparecer no início de linha ("Imperativo...")
     //e String.includes não ignora maiúsculas.
     const baixo = prompt.toLowerCase();
-    assert.ok(baixo.includes('português'));
+    assert.ok(prompt.includes('Idioma da resposta: pt-BR'));
     assert.ok(baixo.includes('imperativo'));
     assert.ok(baixo.includes('72 caracteres'));
+  });
+
+  test('respeita o idioma pedido no .devkitrc.json', () => {
+    assert.ok(montarPrompt({ branch: 'main', diff: 'x', idioma: 'en' }).includes('Idioma da resposta: en'));
   });
 
   test('lista os tipos do Conventional Commits', () => {

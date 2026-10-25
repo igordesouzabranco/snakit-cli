@@ -185,6 +185,47 @@ describe('montarMensagem', () => {
   });
 });
 
+describe('idioma en — verbos trocam, formato continua Conventional Commits', () => {
+  test('feat vira "add"', () => {
+    assert.equal(
+      gerarSugestao([novo('src/carrinho.js')], 'main', 'en').message,
+      'feat(src): add carrinho',
+    );
+  });
+
+  test('fix vira "fix"', () => {
+    assert.equal(
+      gerarSugestao([alterado('src/login.js')], 'fix/login', 'en').message,
+      'fix(src): fix login',
+    );
+  });
+
+  test('remoção vira "remove" e o plural vira "files"', () => {
+    assert.equal(
+      gerarSugestao([removido('src/a.js'), removido('src/b.js')], 'main', 'en').message,
+      'refactor(src): remove 2 files',
+    );
+  });
+
+  test('docs modificado vira "update"', () => {
+    assert.equal(
+      gerarSugestao([alterado('README.md')], 'main', 'en').message,
+      'docs: update README',
+    );
+  });
+
+  test('pt-BR é o padrão quando o idioma não é informado', () => {
+    assert.equal(gerarSugestao([novo('src/carrinho.js')], 'main').message, 'feat(src): adiciona carrinho');
+  });
+
+  test('idioma desconhecido cai no português em vez de quebrar', () => {
+    assert.equal(
+      gerarSugestao([novo('src/carrinho.js')], 'main', 'xx').message,
+      'feat(src): adiciona carrinho',
+    );
+  });
+});
+
 describe('gerarSugestao — ponta a ponta', () => {
   test('junta tipo, escopo e descrição', () => {
     assert.deepEqual(gerarSugestao([novo('controllers/user.js')], 'master'), {

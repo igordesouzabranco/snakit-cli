@@ -113,13 +113,13 @@ export function truncarDiff(texto, limite = LIMITE_DIFF) {
  * Monta o prompt. Função pura: é ela que os testes exercitam sem gastar
  * um centavo.
  */
-export function montarPrompt({ branch, diff }) {
+export function montarPrompt({ branch, diff, idioma = 'pt-BR' }) {
   return `Você gera mensagens de commit no padrão Conventional Commits.
 
 Escreva UMA única mensagem de commit para o diff abaixo.
 
 Regras obrigatórias:
-- Idioma português (pt-BR).
+- Idioma da resposta: ${idioma}.
 - Imperativo na primeira linha (ex.: "adiciona", "corrige", "remove").
 - Primeira linha no formato: tipo(escopo): descricao
   - tipo deve ser um de: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
@@ -200,11 +200,11 @@ function extrairTexto(dados) {
  * Chama a API e devolve o texto bruto da resposta.
  * Levanta erro em caso de falha/timeout — quem chama decide o fallback.
  */
-export async function gerarMensagemComIA({ branch, diff }) {
+export async function gerarMensagemComIA({ branch, diff, idioma = 'pt-BR' }) {
   const payload = {
     model: obterModelo(),
     max_tokens: MAX_TOKENS,
-    messages: [{ role: 'user', content: montarPrompt({ branch, diff }) }],
+    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
   };
 
   const carregado = await carregarCliente();

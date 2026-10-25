@@ -52,29 +52,47 @@ const CATALOGO = [
 ];
 
 /**
- * Lista os templates que existem de fato em src/templates/.
- * Devolve [{ valor, nome, descricao }].
+ * Lista os templates disponíveis: os embutidos em src/templates/ + os que o
+ * `.devkitrc.json` declarar em "templatesExtras".
+ * Devolve [{ valor, nome, descricao, pasta? }].
  */
-export function listarTemplates() {
+export function listarTemplates(config = {}) {
   const pastas = new Set(
     readdirSync(RAIZ_TEMPLATES, { withFileTypes: true })
       .filter((item) => item.isDirectory())
       .map((item) => item.name),
   );
 
-  return CATALOGO.filter((item) => pastas.has(item.valor));
+  const embutidos = CATALOGO.filter((item) => pastas.has(item.valor));
+
+  const extras = (config.templatesExtras ?? []).map((item) => ({
+    valor: item.valor,
+    nome: item.nome,
+    descricao: item.descricao ?? item.valor,
+    pasta: item.pasta,
+  }));
+
+  return [...embutidos, ...extras];
 }
 
 /**
  * Copia a pasta do template para o destino.
  * `cpSync` com `recursive: true` é o "arrasta e solta" do Node: copia a
  * árvore inteira de arquivos e subpastas.
+ * Template extra aceita caminho absoluto ou relativo à pasta de trabalho.
  */
-export function copiarTemplate(template, destino) {
-  const origem = path.join(RAIZ_TEMPLATES, template);
+export function copiarTemplate(template, destino, config = {}) {
+  const extra = (config.templatesExtras ?? []).find((item) => item.valor === template);
+  const origem = extra
+    ? path.resolve(config.dir ?? process.cwd(), extra.pasta)
+    : path.join(RAIZ_TEMPLATES, template);
 
   if (!existsSync(origem)) {
-    throw new Error(`Template não encontrado: ${template}`);
+    throw new Error(
+      extra
+        ? `Template extra "${template}" não existe em: ${origem}`
+        : `Template não encontrado: ${template}`,
+    );
   }
   if (existsSync(destino)) {
     throw new Error(`A pasta "${destino}" já existe. Escolha outro nome ou apague a pasta.`);

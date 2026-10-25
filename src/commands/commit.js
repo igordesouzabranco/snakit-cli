@@ -18,6 +18,7 @@ import {
   commit,
 } from '../utils/git.js';
 import { gerarSugestao } from '../utils/rules.js';
+import { carregarConfig } from '../utils/config.js';
 import {
   obterChave,
   filtrarDiff,
@@ -48,7 +49,7 @@ function falhar(mensagem) {
  * Toda a etapa opcional da IA. Devolve a mensagem ou null — e null significa
  * "cai para as regras locais", nunca um erro fatal.
  */
-async function gerarComIA(arquivos, branch, opcoes) {
+async function gerarComIA(arquivos, branch, opcoes, config) {
   if (!obterChave()) {
     console.log(chalk.yellow('• --ai ignorado: a variável ANTHROPIC_API_KEY não está definida.'));
     console.log(chalk.gray('  Usando as regras locais (grátis e offline).'));
@@ -84,7 +85,9 @@ async function gerarComIA(arquivos, branch, opcoes) {
   }
 
   try {
-    const resposta = limparResposta(await gerarMensagemComIA({ branch, diff: texto }));
+    const resposta = limparResposta(
+      await gerarMensagemComIA({ branch, diff: texto, idioma: config.idioma }),
+    );
     if (!ehMensagemValida(resposta)) {
       console.log(chalk.yellow('• A IA devolveu uma mensagem fora do padrão. Usando as regras locais.'));
       return null;
@@ -141,8 +144,19 @@ export function comandoCommit() {
     .option('--dry-run', 'só mostra a mensagem, não commita')
     .option('--yes', 'aceita a sugestão sem perguntar')
     .option('--ai', 'usa a IA para gerar a mensagem (precisa de ANTHROPIC_API_KEY)')
+    .addHelpText(
+      'after',
+      `
+Exemplos:
+  $ devkit commit --dry-run   só mostra a sugestão, não commita
+  $ devkit commit --yes       aceita a sugestão e commita na hora
+  $ devkit commit --ai        sugere pela IA (grátis para as regras locais)`,
+    )
     .action(async (opcoes) => {
       try {
+        const config = carregarConfig();
+        if (config.aviso) console.log(chalk.yellow(`• ${config.aviso}`));
+
         if (!isGitInstalled()) {
           return falhar('Git não está instalado (ou não está no PATH). Instale em git-scm.com.');
         }
@@ -162,15 +176,17 @@ export function comandoCommit() {
         let mensagem = null;
         let origem = 'regras locais';
 
-        if (opcoes.ai) {
-          const gerada = await gerarComIA(arquivos, branch, opcoes);
+        // --ai liga a IA; .devkitrc.json {"useAi": true} também liga.
+        const usarIA = opcoes.ai || config.useAi;
+        if (usarIA) {
+          const gerada = await gerarComIA(arquivos, branch, opcoes, config);
           if (gerada) {
             mensagem = gerada;
             origem = 'IA';
           }
         }
 
-        if (!mensagem) mensagem = gerarSugestao(arquivos, branch).message;
+        if (!mensagem) mensagem = gerarSugestao(arquivos, branch, config.idioma).message;
 
         if (opcoes.dryRun) {
           console.log(chalk.yellow('Dry-run: nada foi commitado.'));
