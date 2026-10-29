@@ -1,0 +1,1 @@
+﻿{"name":"{{nome}}","version":"0.0.1","description":"Biblioteca {{nome}}","main":"src/index.js","type":"module","exports":{".":{"import":"./src/index.js"}},"scripts":{"test":"node --test"},"license":"MIT"}

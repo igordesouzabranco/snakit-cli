@@ -47,8 +47,14 @@ export function validarNomeProjeto(nome) {
 // A ordem define a ordem do menu do `snakit new`.
 const CATALOGO = [
   { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)' },
+  { valor: 'express-ts', nome: 'Express + TypeScript', descricao: 'Express MVC com TypeScript (ts-node, tsc)' },
   { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite' },
+  { valor: 'react-ts', nome: 'React + TypeScript', descricao: 'React com Vite e TypeScript' },
   { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)' },
+  { valor: 'fastapi', nome: 'FastAPI', descricao: 'API Python com FastAPI' },
+  { valor: 'django', nome: 'Django', descricao: 'Projeto Django mínimo' },
+  { valor: 'cli-node', nome: 'CLI Node', descricao: 'CLI em Node.js com Commander e teste' },
+  { valor: 'lib-npm', nome: 'Lib npm', descricao: 'Biblioteca npm (ESM, exports, teste)' },
 ];
 
 /**

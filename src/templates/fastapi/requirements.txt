@@ -1,0 +1,2 @@
+﻿{"name":"{{nome}}","version":"0.1.0","description":"API FastAPI para {{nome}}"}
+fastapi\nuvicorn[standard]
