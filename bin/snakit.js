@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { comandoCommit } from '../src/commands/commit.js';
 import { comandoNew } from '../src/commands/new.js';
+import { comandoHook } from '../src/commands/hook.js';
+import { comandoLint } from '../src/commands/lint.js';
 
 // Lê a versão direto do package.json: assim nunca sobra versão divergente
 // entre o `--version` e o que foi publicado no npm.
@@ -27,6 +29,8 @@ program
 // Comandos da CLI ficam em src/commands/ e são registrados aqui.
 program.addCommand(comandoCommit());
 program.addCommand(comandoNew());
+program.addCommand(comandoHook());
+program.addCommand(comandoLint());
 
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`

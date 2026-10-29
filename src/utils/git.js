@@ -122,6 +122,17 @@ export function commit(message, dir = process.cwd()) {
   return executarGit('commit -F -', { dir, input: message });
 }
 
+/** Faz `git push`, se houver upstream configurado. */
+export function push(dir = process.cwd()) {
+  try {
+    executarGit('push', { dir });
+    return true;
+  } catch (erro) {
+    // Se não há upstream, devolvemos false sem quebrar a CLI.
+    return false;
+  }
+}
+
 /** Inicializa um repositório git na pasta informada. */
 export function init(dir = process.cwd()) {
   return executarGit('init', { dir });
