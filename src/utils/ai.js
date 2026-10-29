@@ -200,7 +200,73 @@ function extrairTexto(dados) {
  * Chama a API e devolve o texto bruto da resposta.
  * Levanta erro em caso de falha/timeout — quem chama decide o fallback.
  */
-export async function gerarMensagemComIA({ branch, diff, idioma = 'pt-BR' }) {
+export async function gerarMensagemComIA({ branch, diff, idioma = 'pt-BR', provider = 'anthropic', baseUrl = '' }) {
+  const url = provider === 'ollama' ? (process.env.OLLAMA_HOST || 'http://localhost:11434') + '/api/chat' :
+    provider === 'openai' ? (baseUrl || process.env.SNAKIT_BASE_URL || 'https://api.openai.com/v1/chat/completions') : URL_API;
+  const chave = provider === 'anthropic' ? obterChave() : (provider === 'openai' ? (process.env.OPENAI_API_KEY ?? '').trim() : null);
+  if (!chave && provider !== 'ollama') {
+    throw new Error('Chave de API não configurada para provedor: ' + provider);
+  }
+
+  const payload = provider === 'ollama' ? {
+    model: process.env.SNAKIT_MODEL || 'llama2',
+    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
+    stream: false,
+  } : provider === 'openai' ? {
+    model: process.env.SNAKIT_MODEL || 'gpt-4o-mini',
+    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
+    max_tokens: MAX_TOKENS,
+  } : {
+    model: obterModelo(),
+    max_tokens: MAX_TOKENS,
+    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
+  };
+
+  if (provider === 'ollama') {
+    const resposta = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const dados = await resposta.json();
+    const texto = (dados.message?.content || dados.response || '').trim();
+    return texto;
+  }
+
+  if (provider === 'openai') {
+    const resposta = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'authorization': `Bearer ${chave}`,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const dados = await resposta.json().catch(() => null);
+    if (!resposta.ok) {
+      const motivo = dados?.error?.message ?? `HTTP ${resposta.status}`;
+      throw new Error(`a API respondeu ${resposta.status} (${motivo})`);
+    }
+    return (dados.choices?.[0]?.message?.content || '').trim();
+  }
+
+  const carregado = await carregarCliente();
+  if (carregado.tipo === 'sdk') {
+    const resposta = await carregado.cliente.messages.create({
+      model: obterModelo(),
+      max_tokens: MAX_TOKENS,
+      messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
+    });
+    return extrairTexto(resposta);
+  }
+  return chamarComFetch({
+    model: obterModelo(),
+    max_tokens: MAX_TOKENS,
+    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
+  });
+}
   const payload = {
     model: obterModelo(),
     max_tokens: MAX_TOKENS,

@@ -51,6 +51,16 @@ import { comandoDoctor } from '../src/commands/doctor.js';
 program.addCommand(comandoInit());
 program.addCommand(comandoDoctor());
 program.addCommand(comandoTemplates());
+import { comandoPr } from '../src/commands/pr.js';
+program.addCommand(comandoPr());
+import { comandoCheck } from '../src/commands/check.js';
+program.addCommand(comandoCheck());
+import { comandoReadme } from '../src/commands/readme.js';
+program.addCommand(comandoReadme());
+import { comandoStats } from '../src/commands/stats.js';
+import { comandoBranch } from '../src/commands/branch.js';
+program.addCommand(comandoStats());
+program.addCommand(comandoBranch());
 
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
