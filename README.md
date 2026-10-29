@@ -6,14 +6,25 @@ Dois comandos, nada de mágica:
 
 | Comando | O que faz |
 | --- | --- |
-| `snakit new <nome>` | Cria uma pasta nova a partir de um template, com `git init` e `npm install`. |
-| `snakit commit` | Sugere mensagem (offline/grátis; `--ai` opcional). `--all`, `--push`, `--type`, `--scope`, `-m`, `--break`. |
-| `snakit hook` | `install` / `uninstall` / `status` do hook `prepare-commit-msg`. |
-| `snakit lint` | Valida uma mensagem (`[mensagem]`; `--from` / `--to`). |
-| `snakit changelog` | Gera/atualiza `CHANGELOG.md` desde a última tag. |
-| `snakit release` | Calcula bump (`patch/minor/major`), atualiza `package.json`, cria tag. |
-| `snakit undo` | `git reset --soft HEAD~1` (mantém stage). |
-| `snakit amend` | Reescreve a mensagem do último commit. |
+| `snakit new <nome>` | Cria projeto (9 templates). `--template`, `--yes`, `--pm`, `--ts`, `--no-install`, `--no-git`. |
+| `snakit commit` | Sugere mensagem. `--dry-run`, `--yes`, `--all`, `--push`, `--type`, `--scope`, `-m`, `--message`, `--break`, `--ai`, `--allow-send`. |
+| `snakit hook` | `install` / `uninstall` / `status` (`--ai`). |
+| `snakit lint` | Valida mensagem. `[mensagem]`, `--from`, `--to`. |
+| `snakit changelog` | Gera `CHANGELOG.md`. `--from`, `--to`, `--dry-run`, `--stdout`. |
+| `snakit release` | Bump (`patch/minor/major`), `--dry-run` padrão. |
+| `snakit undo` | `git reset --soft HEAD~1`. |
+| `snakit amend` | Reescreve mensagem do último commit. |
+| `snakit add <recurso>` | Adiciona recurso (`eslint`, `prettier`, `vitest`, `docker`, `ci`, `husky`, `env`, `license`). `--list`. |
+| `snakit generate` | Gera arquivo MVC (`controller`, `model`, `route`, `resource <nome>`). |
+| `snakit templates` | `list`, `add <repo> <nome>`, `remove <nome>`. |
+| `snakit config` | `get`, `set`, `list`, `path`. |
+| `snakit init` | Cria `.snakitrc.json` comentado. |
+| `snakit doctor` | Verifica ambiente e configuração. |
+| `snakit pr` | Gera título/descrição PR (`--base`, `--ai`, `--copy`). |
+| `snakit check` | Revisão local (`--fix`). |
+| `snakit readme` | Gera `README.md` (`--force`). |
+| `snakit stats` | Estatísticas (`--since`, `--until`, `--output json`). |
+| `snakit branch <desc>` | Sugere nome `tipo/descricao-kebab`. |
 
 **O `snakit commit` funciona offline e de graça.** O `snakit new` precisa de internet apenas para o `npm install` (use `--no-install` para evitar). A IA é opcional e só roda se você pedir com `--ai`.
 
@@ -58,8 +69,14 @@ snakit new minha-loja --no-install --no-git   # só monta a estrutura
 | Template | Estrutura |
 | --- | --- |
 | **Express MVC** | `app.js`, `controllers/`, `models/`, `routes/`, `package.json` |
-| **React** | Vite mínimo: `index.html`, `vite.config.js`, `src/main.jsx`, `src/App.jsx` |
+| **Express + TypeScript** | MVC com `ts-node`, `tsc`, `src/app.ts` |
+| **React** | Vite mínimo |
+| **React + TypeScript** | Vite + TypeScript |
 | **Node puro** | `index.js` + `package.json` |
+| **FastAPI** | Python: `app/main.py`, `requirements.txt` |
+| **Django** | `manage.py`, `wsgi.py`, `requirements.txt` |
+| **CLI Node** | `bin/cli.js` com `commander` |
+| **Lib npm** | ESM (`exports`), `src/index.js`, teste |
 
 O nome do projeto é validado (sem espaços, sem acentos, sem caracteres fora de
 letras/números/`.`/`-`/`_`) e se a pasta já existir a CLI aborta em vez de apagar
