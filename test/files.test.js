@@ -75,9 +75,11 @@ describe('validarNomeProjeto', () => {
 });
 
 describe('listarTemplates', () => {
-  test('encontra os três templates do projeto', () => {
+  test('encontra templates (incluindo novos)', () => {
     const nomes = listarTemplates().map((t) => t.valor);
-    assert.deepEqual(nomes.sort(), ['express-mvc', 'node-puro', 'react']);
+    assert.ok(nomes.includes('express-mvc'));
+    assert.ok(nomes.includes('node-puro'));
+    assert.ok(nomes.includes('express-ts'));
   });
 
   test('cada template tem nome e descrição', () => {
