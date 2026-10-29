@@ -17,6 +17,7 @@ import {
   getCurrentBranch,
   commit,
   add,
+  push,
 } from '../utils/git.js';
 import { gerarSugestao } from '../utils/rules.js';
 import { carregarConfig } from '../utils/config.js';
@@ -101,7 +102,7 @@ async function gerarComIA(branch, opcoes, config) {
   }
 }
 
-function montarMensagemComOpcoes(sugestao, opcoes) {
+export function montarMensagemComOpcoes(sugestao, opcoes) {
   let tipo = opcoes.type || sugestao.split(':')[0].split('(')[0];
   let scope = opcoes.scope || '';
   let desc = sugestao.split(': ')[1] || '';
