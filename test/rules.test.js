@@ -78,8 +78,8 @@ describe('descobrirTipo — regra 5: fix', () => {
     assert.equal(descobrirTipo([alterado('src/app.js')], 'fix/login'), 'fix');
   });
 
-  test('caminho com "fix" vira fix', () => {
-    assert.equal(descobrirTipo([alterado('src/prefix.js')], 'master'), 'fix');
+  test('caminho com "fix" como palavra inteira vira fix', () => {
+    assert.equal(descobrirTipo([alterado('src/fix-bug.js')], 'master'), 'fix');
   });
 
   test('branch com "fix" mas só docs respeita a ordem e fica docs', () => {

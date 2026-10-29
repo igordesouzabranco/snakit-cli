@@ -49,7 +49,7 @@ function falhar(mensagem) {
  * Toda a etapa opcional da IA. Devolve a mensagem ou null — e null significa
  * "cai para as regras locais", nunca um erro fatal.
  */
-async function gerarComIA(arquivos, branch, opcoes, config) {
+async function gerarComIA(branch, opcoes, config) {
   if (!obterChave()) {
     console.log(chalk.yellow('• --ai ignorado: a variável ANTHROPIC_API_KEY não está definida.'));
     console.log(chalk.gray('  Usando as regras locais (grátis e offline).'));
@@ -70,8 +70,8 @@ async function gerarComIA(arquivos, branch, opcoes, config) {
     return null;
   }
 
-  // Avisar ANTES de enviar, sempre — exceto quando quem mandou foi --yes.
-  if (!opcoes.yes) {
+  // Avisar ANTES de enviar, sempre — exceto quando quem mandou foi --allow-send.
+  if (!opcoes.allowSend) {
     console.log('');
     console.log(chalk.yellow('⚠ O diff vai ser enviado para uma API externa (api.anthropic.com).'));
     console.log(chalk.gray('  Chaves, lockfiles e binários já foram removidos do conteúdo.'));
@@ -144,6 +144,7 @@ export function comandoCommit() {
     .option('--dry-run', 'só mostra a mensagem, não commita')
     .option('--yes', 'aceita a sugestão sem perguntar')
     .option('--ai', 'usa a IA para gerar a mensagem (precisa de ANTHROPIC_API_KEY)')
+    .option('--allow-send', 'autoriza o envio do diff para a API (não autoriza com --yes)')
     .addHelpText(
       'after',
       `
@@ -179,7 +180,7 @@ Exemplos:
         // --ai liga a IA; .snakitrc.json {"useAi": true} também liga.
         const usarIA = opcoes.ai || config.useAi;
         if (usarIA) {
-          const gerada = await gerarComIA(arquivos, branch, opcoes, config);
+          const gerada = await gerarComIA(branch, opcoes, config);
           if (gerada) {
             mensagem = gerada;
             origem = 'IA';

@@ -2,7 +2,7 @@
 // Copia o template escolhido para a pasta nova e troca os placeholders
 // (textos entre chaves, como {{nome}}) pelos valores reais.
 
-import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,6 +99,19 @@ export function copiarTemplate(template, destino, config = {}) {
   }
 
   cpSync(origem, destino, { recursive: true });
+
+  // Renomear arquivos que começam com _ para . (npm ignora .gitignore no publish)
+  function renomearRecursivo(dir) {
+    for (const item of readdirSync(dir, { withFileTypes: true })) {
+      const caminho = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        renomearRecursivo(caminho);
+      } else if (item.name.startsWith('_')) {
+        renameSync(caminho, path.join(dir, '.' + item.name.slice(1)));
+      }
+    }
+  }
+  renomearRecursivo(destino);
 }
 
 /** Caminha pela pasta devolvendo só os arquivos de texto. */
