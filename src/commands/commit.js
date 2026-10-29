@@ -16,6 +16,8 @@ import {
   getStagedDiff,
   getCurrentBranch,
   commit,
+  add,
+  push,
 } from '../utils/git.js';
 import { gerarSugestao } from '../utils/rules.js';
 import { carregarConfig } from '../utils/config.js';
@@ -100,6 +102,25 @@ async function gerarComIA(branch, opcoes, config) {
   }
 }
 
+export function montarMensagemComOpcoes(sugestao, opcoes) {
+  let tipo = opcoes.type || sugestao.split(':')[0].split('(')[0];
+  let scope = opcoes.scope || '';
+  let desc = sugestao.split(': ')[1] || '';
+  if (opcoes.scope) scope = opcoes.scope;
+  else if (sugestao.includes('(')) {
+    const match = sugestao.match(/\(([^)]+)\):/);
+    if (match && !opcoes.scope) scope = match[1];
+  }
+  if (opcoes.message) {
+    let msg = opcoes.message;
+    if (opcoes.break) msg += '\n\nBREAKING CHANGE: ' + (opcoes.message.includes(':') ? opcoes.message.split(': ')[1] : 'mudança de API');
+    return msg;
+  }
+  let msg = scope ? `${tipo}(${scope}): ${desc}` : `${tipo}: ${desc}`;
+  if (opcoes.break) msg += '\n!';
+  return msg;
+}
+
 async function escolherAcao(mensagemSugerida) {
   console.log('');
   console.log(chalk.bold('Mensagem sugerida:'));
@@ -141,6 +162,12 @@ export function comandoCommit() {
 
   comando
     .description('Analisa o git diff --staged e sugere uma mensagem de commit.')
+    .option('--all', 'roda git add -A antes de sugerir a mensagem')
+    .option('--push', 'faz git push depois do commit, se houver upstream')
+    .option('--type <tipo>', 'sobrescreve o tipo da mensagem')
+    .option('--scope <escopo>', 'sobrescreve o escopo da mensagem')
+    .option('-m, --message <texto>', 'sobrescreve a mensagem completa (assunto e corpo)')
+    .option('--break', 'marca como breaking change (adiciona BREAKING CHANGE no rodapé)')
     .option('--dry-run', 'só mostra a mensagem, não commita')
     .option('--yes', 'aceita a sugestão sem perguntar')
     .option('--ai', 'usa a IA para gerar a mensagem (precisa de ANTHROPIC_API_KEY)')
@@ -165,10 +192,19 @@ Exemplos:
           return falhar('Esta pasta não é um repositório git. Rode `git init` primeiro.');
         }
 
-        const arquivos = getStagedFiles();
-        if (arquivos.length === 0) {
+        if (opcoes.all) {
+          console.log(chalk.yellow('• `git add -A` executado.' ));
+          add();
+        }
+
+        let arquivos = getStagedFiles();
+        if (opcoes.all && arquivos.length === 0) {
+          // Se --all ainda não adicionou nada (ex: nada mudou), avisa, mas não quebra.
+          console.log(chalk.yellow('• `git add -A` não adicionou arquivos novos.'));
+        }
+        if (arquivos.length === 0 && !opcoes.all) {
           return falhar(
-            'Nada encontrado no stage. Rode `git add <arquivos>` antes de usar o snakit commit.',
+            'Nada encontrado no stage. Rode `git add <arquivos>` ou `snakit commit --all`.',
           );
         }
 
@@ -189,6 +225,11 @@ Exemplos:
 
         if (!mensagem) mensagem = gerarSugestao(arquivos, branch, config.idioma).message;
 
+        // Aplicar sobrescritas e opções
+        if (opcoes.type || opcoes.scope || opcoes.message || opcoes.break) {
+          mensagem = montarMensagemComOpcoes(mensagem, opcoes);
+        }
+
         if (opcoes.dryRun) {
           console.log(chalk.yellow('Dry-run: nada foi commitado.'));
           console.log(`  ${chalk.cyan(mensagem)}`);
@@ -208,6 +249,12 @@ Exemplos:
 
         commit(mensagemFinal);
         console.log(chalk.green(`✔ Commit criado: ${mensagemFinal}`));
+
+        if (opcoes.push) {
+          const ok = push();
+          if (ok) console.log(chalk.green('✔ Push realizado.'));
+          else console.log(chalk.yellow('• Push não realizado: sem upstream configurado. Configure com `git push -u origin <branch>`'));
+        }
       } catch (erro) {
         falhar(erroDoGit(erro));
       }
