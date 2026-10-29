@@ -19,23 +19,24 @@ function falhar(mensagem) {
 
 /** Roda `npm install` mostrando a saída na tela. Falha não derruba o
  *  scaffold, mas sai com código 1 — erro é erro. */
-function instalarDependencias(destino) {
+function instalarDependencias(destino, pm = 'npm') {
+  const comando = pm === 'npm' ? 'npm install' : `${pm} install`;
   try {
-    execSync('npm install', { cwd: destino, stdio: 'inherit' });
+    execSync(comando, { cwd: destino, stdio: 'inherit' });
     return true;
   } catch {
-    console.error(chalk.red('✖ `npm install` falhou. Rode manualmente dentro da pasta.'));
+    console.error(chalk.red('✖ `' + comando + '` falhou. Rode manualmente dentro da pasta.'));
     process.exitCode = 1;
     return false;
   }
 }
 
-function mostrarProximosPassos(nome, instalou) {
+function mostrarProximosPassos(nome, instalou, pm = 'npm') {
   console.log('');
   console.log(chalk.bold('Próximos passos:'));
   console.log(`  cd ${nome}`);
-  if (!instalou) console.log('  npm install');
-  console.log('  npm start');
+  if (!instalou) console.log(`  ${pm} install`);
+  console.log(`  ${pm} start`);
 }
 
 export function comandoNew() {
@@ -44,6 +45,10 @@ export function comandoNew() {
   comando
     .argument('<nome>', 'nome da pasta do projeto')
     .description('Cria um projeto novo a partir de um template.')
+    .option('--template <nome>', 'template a usar (pula o menu)')
+    .option('--yes', 'usa padrões, sem prompts interativos')
+    .option('--pm <npm|pnpm|yarn|bun>', 'gerenciador de pacotes (padrão: detectar pelo user agent)')
+    .option('--ts', 'usa TypeScript quando o template suportar')
     .option('--no-install', 'não roda npm install')
     .option('--no-git', 'não roda git init nem o primeiro commit')
     .addHelpText(
@@ -70,14 +75,24 @@ Exemplos:
         const templates = listarTemplates(config);
         if (templates.length === 0) return falhar('Nenhum template encontrado em src/templates/.');
 
-        const { escolhido } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'escolhido',
-            message: 'Qual template você quer usar?',
-            choices: templates.map((t) => ({ name: `${t.nome} — ${t.descricao}`, value: t })),
-          },
-        ]);
+        let escolhido = null;
+        if (opcoes.template) {
+          const extra = templates.find((t) => t.valor === opcoes.template);
+          if (!extra) return falhar('Template "' + opcoes.template + '" não encontrado.');
+          escolhido = extra;
+        } else if (!opcoes.yes) {
+          const { escolhido: esc } = await inquirer.prompt([
+            {
+              type: 'list',
+              name: 'escolhido',
+              message: 'Qual template você quer usar?',
+              choices: templates.map((t) => ({ name: `${t.nome} — ${t.descricao}`, value: t })),
+            },
+          ]);
+          escolhido = esc;
+        } else {
+          escolhido = templates[0];
+        }
 
         copiarTemplate(escolhido.valor, destino, config);
         const alterados = substituirPlaceholders(destino, { nome: validacao.nome });
@@ -92,7 +107,8 @@ Exemplos:
         }
         if (usarGit) init(destino);
 
-        const instalou = opcoes.install ? instalarDependencias(destino) : false;
+        const pm = opcoes.pm || (process.env.npm_config_user_agent || '').match(/npm|pnpm|yarn|bun/i)?.[0]?.toLowerCase() || 'npm';
+        const instalou = opcoes.install ? instalarDependencias(destino, pm) : false;
         if (!opcoes.install) console.log(chalk.yellow('• `npm install` pulado (--no-install).'));
 
         if (usarGit) {
@@ -106,7 +122,7 @@ Exemplos:
           console.log(chalk.green(`✔ Primeiro commit: ${mensagem}`));
         }
 
-        mostrarProximosPassos(validacao.nome, opcoes.install && instalou);
+        mostrarProximosPassos(validacao.nome, opcoes.install && instalou, pm);
       } catch (erro) {
         falhar(String(erro.message || erro));
       }
