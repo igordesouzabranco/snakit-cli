@@ -267,18 +267,3 @@ export async function gerarMensagemComIA({ branch, diff, idioma = 'pt-BR', provi
     messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
   });
 }
-  const payload = {
-    model: obterModelo(),
-    max_tokens: MAX_TOKENS,
-    messages: [{ role: 'user', content: montarPrompt({ branch, diff, idioma }) }],
-  };
-
-  const carregado = await carregarCliente();
-
-  if (carregado.tipo === 'sdk') {
-    const resposta = await carregado.cliente.messages.create(payload);
-    return extrairTexto(resposta);
-  }
-
-  return chamarComFetch(payload);
-}
