@@ -48,8 +48,15 @@ const PADROES_DE_CONFIGURACAO = [
   /^\.prettierrc(\..+)?$/,
   /^prettier\.config\.(c|m)?js$/,
   /^tsconfig.*\.json$/,
-  /\.config\.(c|m)?js$/, // vite.config.js, jest.config.js
+  /\.config\.(c|m)?js$/,
   /\.config\.json$/,
+  /^Dockerfile$/,
+  /^docker-compose\.(yml|yaml)$/,
+  /^\.github\/workflows\/.*$/,
+  /^requirements\.txt$/,
+  /^pyproject\.toml$/,
+  /^pom\.xml$/,
+  /^build\.gradle$/,
 ];
 
 function baseDoArquivo(caminho) {
@@ -58,7 +65,9 @@ function baseDoArquivo(caminho) {
 }
 
 function ehArquivoDeTeste(caminho) {
-  return /\.(test|spec)\.js$/.test(caminho);
+  return /\.(test|spec)\.(js|mjs|cjs|jsx|ts|tsx|py|java|go|rs)$/i.test(caminho) ||
+         /test_.*\.py$|.*_test\.py$|.*Test\.java$|.*_test\.go$/i.test(caminho) ||
+         /(__tests__|tests)\//i.test(caminho);
 }
 
 function ehDocumentacao(caminho) {
@@ -87,6 +96,9 @@ export function descobrirTipo(arquivos, branch = '') {
   const caminhos = arquivos.map((item) => item.file);
   if (caminhos.length === 0) return 'chore';
 
+  const todosCss = caminhos.every((c) => /\.css$|\.scss$/.test(c));
+  if (todosCss) return 'style';
+
   if (todosOsArquivos(caminhos, ehArquivoDeTeste)) return 'test';
   if (todosOsArquivos(caminhos, ehDocumentacao)) return 'docs';
   if (todosOsArquivos(caminhos, ehConfiguracao)) return 'chore';
@@ -97,8 +109,8 @@ export function descobrirTipo(arquivos, branch = '') {
   // Observação: "fix" como substring pega até "prefix.js". É o que o
   // enunciado pede ("caminho contendo fix"), então mantemos simples.
   const mencionaFix =
-    branch.toLowerCase().includes('fix') ||
-    caminhos.some((caminho) => caminho.toLowerCase().includes('fix'));
+    /(?:^|[\/_.-])(?:fix|fixes|hotfix|bugfix)(?=[\/_.-]|$)/i.test(branch) ||
+    caminhos.some((caminho) => /(?:^|[\/_.-])(?:fix|fixes|hotfix|bugfix)(?=[\/_.-]|$)/i.test(caminho));
   if (mencionaFix) return 'fix';
 
   const temArquivoNovo = arquivos.some((item) => item.status === 'A');
@@ -159,8 +171,8 @@ export function criarDescricao(arquivos, type, idioma = 'pt-BR') {
   if (arquivos.length === 1) {
     const base = baseDoArquivo(arquivos[0].file);
     const nome = base
-      .replace(/\.(test|spec)\.(js|mjs|cjs|jsx|ts|tsx)$/, '') // user.test.js → user
-      .replace(/\.(js|mjs|cjs|jsx|ts|tsx|json|md|css|html)$/, '');
+      .replace(/\.(test|spec)\.(js|mjs|cjs|jsx|ts|tsx|py|java|go|rs)$/, '')
+      .replace(/\.(js|mjs|cjs|jsx|ts|tsx|json|md|css|scss|html|py|java|go|rs|php|rb|c|cpp|cs|sql|yml|yaml|toml)$/, '');
     return `${verbo} ${nome}`;
   }
 
