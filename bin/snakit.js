@@ -12,6 +12,10 @@ import { comandoCommit } from '../src/commands/commit.js';
 import { comandoNew } from '../src/commands/new.js';
 import { comandoHook } from '../src/commands/hook.js';
 import { comandoLint } from '../src/commands/lint.js';
+import { comandoChangelog } from '../src/commands/changelog.js';
+import { comandoRelease } from '../src/commands/release.js';
+import { comandoUndo } from '../src/commands/undo.js';
+import { comandoAmend } from '../src/commands/amend.js';
 
 // Lê a versão direto do package.json: assim nunca sobra versão divergente
 // entre o `--version` e o que foi publicado no npm.
@@ -31,6 +35,10 @@ program.addCommand(comandoCommit());
 program.addCommand(comandoNew());
 program.addCommand(comandoHook());
 program.addCommand(comandoLint());
+program.addCommand(comandoChangelog());
+program.addCommand(comandoRelease());
+program.addCommand(comandoUndo());
+program.addCommand(comandoAmend());
 
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
