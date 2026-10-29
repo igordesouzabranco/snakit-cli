@@ -16,6 +16,7 @@ import { comandoChangelog } from '../src/commands/changelog.js';
 import { comandoRelease } from '../src/commands/release.js';
 import { comandoUndo } from '../src/commands/undo.js';
 import { comandoAmend } from '../src/commands/amend.js';
+import { comandoAdd } from '../src/commands/add.js';
 
 // Lê a versão direto do package.json: assim nunca sobra versão divergente
 // entre o `--version` e o que foi publicado no npm.
@@ -39,6 +40,17 @@ program.addCommand(comandoChangelog());
 program.addCommand(comandoRelease());
 program.addCommand(comandoUndo());
 program.addCommand(comandoAmend());
+program.addCommand(comandoAdd());
+import { comandoGenerate } from '../src/commands/generate.js';
+program.addCommand(comandoGenerate());
+import { comandoTemplates } from '../src/commands/templates.js';
+import { comandoConfig } from '../src/commands/config.js';
+program.addCommand(comandoConfig());
+import { comandoInit } from '../src/commands/init.js';
+import { comandoDoctor } from '../src/commands/doctor.js';
+program.addCommand(comandoInit());
+program.addCommand(comandoDoctor());
+program.addCommand(comandoTemplates());
 
 // Sem nenhum argumento, mostra a ajuda (sai com 0).
 // Importante: isto é feito ANTES do parse. Se deixássemos um `program.action`
