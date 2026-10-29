@@ -7,7 +7,13 @@ Dois comandos, nada de mágica:
 | Comando | O que faz |
 | --- | --- |
 | `snakit new <nome>` | Cria uma pasta nova a partir de um template, com `git init` e `npm install`. |
-| `snakit commit` | Lê o `git diff --staged` e sugere uma mensagem de commit. |
+| `snakit commit` | Sugere mensagem (offline/grátis; `--ai` opcional). `--all`, `--push`, `--type`, `--scope`, `-m`, `--break`. |
+| `snakit hook` | `install` / `uninstall` / `status` do hook `prepare-commit-msg`. |
+| `snakit lint` | Valida uma mensagem (`[mensagem]`; `--from` / `--to`). |
+| `snakit changelog` | Gera/atualiza `CHANGELOG.md` desde a última tag. |
+| `snakit release` | Calcula bump (`patch/minor/major`), atualiza `package.json`, cria tag. |
+| `snakit undo` | `git reset --soft HEAD~1` (mantém stage). |
+| `snakit amend` | Reescreve a mensagem do último commit. |
 
 **O `snakit commit` funciona offline e de graça.** O `snakit new` precisa de internet apenas para o `npm install` (use `--no-install` para evitar). A IA é opcional e só roda se você pedir com `--ai`.
 
