@@ -1,97 +1,127 @@
-import { Command } from 'commander';
-import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
+// src/commands/check.js
+// `snakit check` — revisa o que está no stage (segredos, debug, arquivos
+// sensíveis). Só olha o stage, nunca o repositório inteiro.
+
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { Command } from 'commander';
 import chalk from 'chalk';
+import { analisarStage, ehBinario } from '../utils/check.js';
 
-const PADROES_PROIBIDOS = [
-  /sk-ant-/, /api_key/i, /api-key/i, /secret/i, /token/i,
-  /-----BEGIN (PRIVATE|PUBLIC) KEY-----/,
-  /password/i,
-];
-const EXTENSOES_BINARIAS = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf', '.zip', '.exe', '.dll', '.so', '.wasm', '.jar', '.class'];
+/** Roda um comando git com os argumentos em array (sem shell). */
+function rodarGit(argumentos, dir) {
+  return execFileSync('git', argumentos, {
+    cwd: dir,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+}
 
-function ehArquivoGrande(pasta, limite = 1024 * 1024) {
-  for (const item of readdirSync(pasta, { withFileTypes: true })) {
-    const caminho = path.join(pasta, item.name);
-    if (item.isDirectory() && item.name !== 'node_modules' && item.name !== '.git') {
-      const grande = ehArquivoGrande(caminho, limite);
-      if (grande) return grande;
-    } else if (item.isFile()) {
-      if (statSync(caminho).size > limite) return caminho;
+/** Coleta metadados dos arquivos no stage: tamanho e se é binário. */
+function carregarArquivosStage(dir) {
+  const nomeSaida = rodarGit(['diff', '--cached', '--name-only'], dir);
+  const caminhos = nomeSaida.split(/\r?\n/).filter(Boolean);
+  const arquivos = [];
+
+  for (const caminho of caminhos) {
+    try {
+      const buffer = readFileSync(path.join(dir, caminho));
+      arquivos.push({
+        caminho,
+        tamanho: buffer.length,
+        ehBinario: ehBinario(caminho, buffer),
+      });
+    } catch {
+      // Arquivo removido do disco mas ainda no stage: sem tamanho/binário.
+      arquivos.push({ caminho, tamanho: 0, ehBinario: false });
     }
   }
-  return null;
+
+  return arquivos;
+}
+
+function imprimirAchados(erros, avisos) {
+  if (erros.length > 0) {
+    console.error(chalk.red(`✖ Erros (${erros.length}):`));
+    for (const a of erros) {
+      const local = a.linha > 0 ? `${a.arquivo}:${a.linha}` : a.arquivo;
+      console.error(`  - [${a.regra}] ${local} — ${a.trecho}`);
+    }
+  }
+  if (avisos.length > 0) {
+    console.log(chalk.yellow(`⚠ Avisos (${avisos.length}):`));
+    for (const a of avisos) {
+      const local = a.linha > 0 ? `${a.arquivo}:${a.linha}` : a.arquivo;
+      console.log(`  - [${a.regra}] ${local} — ${a.trecho}`);
+    }
+  }
 }
 
 export function comandoCheck() {
   const cmd = new Command('check');
   cmd
-    .description('Revisão local antes do commit.')
-    .option('--fix', 'tenta corrigir automaticamente o que for seguro')
+    .description('Revisa o stage antes do commit (segredos, debug, arquivos sensíveis).')
+    .option('--strict', 'avisos também fazem sair com código 1')
+    .option('--output <formato>', 'formato da saída: text (padrão) ou json')
+    .addHelpText(
+      'after',
+      `
+Regras:
+  Erro (exit 1): chaves AWS/Anthropic/OpenAI, token GitHub, chave privada,
+    credencial literal em código, arquivos .env* (exceto .env.example),
+    *.pem e *.key no stage.
+  Aviso (exit 0, salvo com --strict): console.log/debug e debugger em código,
+    TODO/FIXME novos, arquivo > 1 MB e binário grande no stage.
+
+Exemplos:
+  $ snakit check                 revisa o stage com a saída no terminal
+  $ snakit check --strict        avisos também dão exit 1
+  $ snakit check --output json   saída em JSON`,
+    )
     .action((opcoes) => {
-      const erros = [];
-      // Segredos no stage
+      const dir = process.cwd();
+
+      let diff;
       try {
-        const diff = require('node:child_process').execSync('git diff --cached', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }) || '';
-        for (const linha of diff.split('\n')) {
-          for (const padrao of PADROES_PROIBIDOS) {
-            if (padrao.test(linha) && !linha.startsWith('+')) {
-              erros.push('Possível segredo no diff: ' + linha.slice(0, 60));
-            }
-          }
-        }
-      } catch { /* sem stage */ }
+        diff = rodarGit(['diff', '--cached', '-U0'], dir);
+      } catch (erro) {
+        const motivo = (typeof erro.stderr === 'string' && erro.stderr.trim()) || erro.message;
+        console.error(chalk.red(`✖ O git falhou: ${motivo}`));
+        process.exitCode = 1;
+        return;
+      }
 
-      // console.log / debugger
+      let arquivos;
       try {
-        const arquivos = require('node:child_process').execSync('git ls-files', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n');
-        for (const arquivo of arquivos) {
-          if (arquivo.endsWith('.js') || arquivo.endsWith('.ts') || arquivo.endsWith('.jsx') || arquivo.endsWith('.tsx')) {
-            const conteudo = readFileSync(arquivo, 'utf8');
-            if (conteudo.includes('console.log') || conteudo.includes('console.debug')) {
-              erros.push('console.log/debug esquecido em: ' + arquivo);
-            }
-            if (conteudo.includes('debugger')) {
-              erros.push('debugger esquecido em: ' + arquivo);
-            }
-          }
+        arquivos = carregarArquivosStage(dir);
+      } catch (erro) {
+        const motivo = (typeof erro.stderr === 'string' && erro.stderr.trim()) || erro.message;
+        console.error(chalk.red(`✖ O git falhou: ${motivo}`));
+        process.exitCode = 1;
+        return;
+      }
+
+      if (!diff.trim() && arquivos.length === 0) {
+        if (opcoes.output === 'json') {
+          console.log(JSON.stringify({ erros: [], avisos: [] }, null, 2));
+        } else {
+          console.log(chalk.green('Nada no stage para revisar'));
         }
-      } catch { /* sem git */ }
+        return;
+      }
 
-      // TODO / FIXME
-      try {
-        const arquivos = require('node:child_process').execSync('git ls-files', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n');
-        for (const arquivo of arquivos) {
-          if (arquivo.endsWith('.js') || arquivo.endsWith('.ts') || arquivo.endsWith('.jsx') || arquivo.endsWith('.tsx') || arquivo.endsWith('.py') || arquivo.endsWith('.md')) {
-            const conteudo = readFileSync(arquivo, 'utf8');
-            if (conteudo.match(/(TODO|FIXME)/gi)) {
-              erros.push('TODO/FIXME encontrado em: ' + arquivo);
-            }
-          }
-        }
-      } catch { }
+      const { erros, avisos } = analisarStage({ diff, arquivos });
 
-      // Arquivo grande
-      const grande = ehArquivoGrande('.');
-      if (grande) erros.push('Arquivo grande (>1MB): ' + grande);
-
-      // Binários no stage
-      try {
-        const stage = require('node:child_process').execSync('git diff --cached --name-only', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n');
-        for (const arquivo of stage) {
-          for (const ext of EXTENSOES_BINARIAS) {
-            if (arquivo.endsWith(ext)) {
-              erros.push('Binário no stage: ' + arquivo);
-            }
-          }
-        }
-      } catch { }
-
-      if (erros.length === 0) {
-        console.log(chalk.green('✔ Nenhum problema encontrado.'));
+      if (opcoes.output === 'json') {
+        console.log(JSON.stringify({ erros, avisos }, null, 2));
+      } else if (erros.length === 0 && avisos.length === 0) {
+        console.log(chalk.green('✔ Nenhum problema encontrado no stage.'));
       } else {
-        console.error(chalk.red('✖ Problemas encontrados:'));
-        for (const e of erros) console.error('  - ' + e);
+        imprimirAchados(erros, avisos);
+      }
+
+      if (erros.length > 0 || (opcoes.strict && avisos.length > 0)) {
         process.exitCode = 1;
       }
     });

@@ -21,7 +21,7 @@ Dois comandos, nada de mágica:
 | `snakit init` | Cria `.snakitrc.json` comentado. |
 | `snakit doctor` | Verifica ambiente e configuração. |
 | `snakit pr` | Gera título/descrição PR (`--base`, `--ai`, `--copy`). |
-| `snakit check` | Revisão local (`--fix`). |
+| `snakit check` | Revisão do stage (`--strict`, `--output json`). |
 | `snakit readme` | Gera `README.md` (`--force`). |
 | `snakit stats` | Estatísticas (`--since`, `--until`, `--output json`). |
 | `snakit branch <desc>` | Sugere nome `tipo/descricao-kebab`. |
