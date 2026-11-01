@@ -95,7 +95,12 @@ Exemplos:
         }
 
         copiarTemplate(escolhido.valor, destino, config);
-        const alterados = substituirPlaceholders(destino, { nome: validacao.nome });
+        // nome_pacote: o nome com - e . virando _ (pastas e imports de Python).
+        const nomePacote = validacao.nome.replace(/[-.]/g, '_');
+        const alterados = substituirPlaceholders(destino, {
+          nome: validacao.nome,
+          nome_pacote: nomePacote,
+        });
         console.log(
           chalk.green(`✔ Projeto "${validacao.nome}" criado com o template ${escolhido.nome} (${alterados} arquivos ajustados).`),
         );
