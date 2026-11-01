@@ -5,9 +5,22 @@ import { Command } from 'commander';
 import { existsSync, readFileSync, writeFileSync, copyFileSync, renameSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import chalk from 'chalk';
+import { temIdentidade } from '../utils/git.js';
 
 const HOOK_FILE = '.git/hooks/prepare-commit-msg';
 const BACKUP = '.git/hooks/prepare-commit-msg.snakit-backup';
+
+/** O hook só prepara a mensagem; o `git commit` de quem usa precisa de
+ *  identidade — avisamos quando ela não existe. */
+function avisarSemIdentidade() {
+  if (temIdentidade(process.cwd())) return;
+  console.log(
+    chalk.yellow(
+      '• Identidade do git não configurada: configure com `git config --global user.name "Seu Nome"` ' +
+        'e `git config --global user.email "voce@exemplo.com"`.',
+    ),
+  );
+}
 
 function hookContent(modo = 'local') {
   const iaFlag = modo === 'ai' ? '--ai' : '';
@@ -55,6 +68,7 @@ export function comandoHook() {
       }
       writeFileSync(hookPath, hookContent(opcoes.ai ? 'ai' : 'local'), { mode: 0o755 });
       console.log(chalk.green('✔ Hook prepare-commit-msg instalado.'));
+      avisarSemIdentidade();
     });
 
   cmd
@@ -85,6 +99,7 @@ export function comandoHook() {
       } else {
         console.log(chalk.yellow('✖ Hook não instalado.'));
       }
+      avisarSemIdentidade();
       if (existsSync(BACKUP)) {
         console.log(chalk.yellow('  Backup existente: ' + BACKUP));
       }

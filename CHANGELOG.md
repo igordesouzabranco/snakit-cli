@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.3.3 — 2026-10-31
+
+### Funcionalidades
+- **config:** valida chave identidade e documenta no init (df9c20b, 2026-10-31)
+- **doctor,hook:** checagem de identidade do git (975fca3, 2026-10-31)
+- **amend,release:** identidade garantida e erros em portugues (d673868, 2026-10-31)
+- **new:** garante identidade do primeiro commit e exit 0 so (9f3e707, 2026-10-31)
+- **identidade:** garantirIdentidade com caminho interativo e --yes (7080eea, 2026-10-31)
+- **git:** detecta identidade e traduz erros cru do git (7bd914d, 2026-10-31)
+
+### Correções
+- **utils:** normaliza separadores de caminho para Windows (2c29ccd, 2026-10-31)
+- **publish:** valida tag, package.json e NPM_TOKEN antes do npm publish (1cb3cac, 2026-10-31)
+- **testes:** identidade de git e branch flexivel no integration.test.js (d42a366, 2026-10-31)
+
+### Documentação
+- **readme:** identidade de git, chave identidade do config e doctor (bfb3878, 2026-10-31)
+
+### Testes
+- **identidade:** suite hermetica sem identidade de git (99780c1, 2026-10-31)
+- **ci:** repos temporarios hermeticos e process.execPath nos testes (b8a3902, 2026-10-31)
+
+### Manutenção
+- **github:** identidade de git, workflow_dispatch e permissoes minimas (18c235f, 2026-10-31)
+
+
 ## 1.3.2 — 2026-10-31
 
 Correções pós-1.3.1 e o conteúdo das fases 0–3 (que foi ao npm como 1.3.1, sem tag).

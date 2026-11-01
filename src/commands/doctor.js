@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import chalk from 'chalk';
 import { carregarConfig } from '../utils/config.js';
+import { obterIdentidade } from '../utils/git.js';
 
 export function comandoDoctor() {
   const cmd = new Command('doctor');
@@ -40,6 +41,19 @@ export function comandoDoctor() {
         console.log(chalk.yellow('• Config: aviso - ' + config.aviso));
       } else {
         console.log(chalk.green('✔ Config válida.'));
+      }
+
+      // Identidade do git
+      const identidade = obterIdentidade(process.cwd());
+      if (identidade.nome && identidade.email) {
+        console.log(chalk.green(`✔ Identidade do git: ${identidade.nome} <${identidade.email}>`));
+      } else {
+        console.log(chalk.yellow('✖ Identidade do git: não configurada'));
+        console.log(
+          chalk.gray(
+            '  Configure: git config --global user.name "Seu Nome" e git config --global user.email "voce@exemplo.com"',
+          ),
+        );
       }
 
       // Hooks

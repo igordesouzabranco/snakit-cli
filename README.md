@@ -118,6 +118,50 @@ A CLI sai com **código 1** e uma mensagem que já diz o que fazer quando:
 - não há nada no stage (`snakit` sugere rodar `git add`);
 - o nome do comando é desconhecido.
 
+Erros do git que dão certo como aviso em vez de quebrar o fluxo (nunca em
+texto cru): identidade de commit ausente, assinatura GPG falhando e hooks que
+rejeitam o commit (o motivo aparece resumido em uma linha).
+
+## Identidade de git (user.name / user.email)
+
+Todo comando que cria commit (`new`, `commit`, `amend`, `release`) confere a
+identidade do git **antes** de commitar, nesta ordem:
+
+1. `git config user.name` / `user.email` (local, global ou as variáveis
+   `GIT_AUTHOR_*` / `GIT_COMMITTER_*`) — se existir, segue normal;
+2. a chave `identidade` do `.snakitrc.json` (seção de configuração abaixo) —
+   usada só naquele commit, sem gravar nada no git;
+3. sem identidade e com terminal interativo (sem `--yes`), a CLI pergunta:
+
+   | Escolha | O que faz |
+   | --- | --- |
+   | Configurar só neste repositório | Pede nome e e-mail e grava com `git config` **local** (sem `--global`) |
+   | Usar uma identidade temporária só neste commit | Passa `-c user.name=… -c user.email=…` no commit, sem gravar |
+   | Cancelar | Não commita |
+
+4. sem identidade e sem terminal (`--yes`, CI): usa a identidade temporária
+   `Snakit <snakit@localhost>` **só naquele commit** e avisa em amarelo, com
+   o comando para configurar a verdadeira:
+
+```bash
+git config --global user.name "Seu Nome"
+git config --global user.email "voce@exemplo.com"
+```
+
+A CLI **nunca** escreve no seu `~/.gitconfig`: sem interatividade, nada é
+gravado em configuração — nem local nem global.
+
+No `snakit new`, se só o primeiro commit falhar por identidade, o projeto
+continua criado e a CLI diz como finalizar o commit depois, saindo com
+código **0**; outros erros de commit saem com **1**.
+
+Para conferir o ambiente, `snakit doctor` mostra a checagem:
+
+```
+✔ Identidade do git: Seu Nome <voce@exemplo.com>
+✖ Identidade do git: não configurada
+```
+
 ## `snakit check`
 
 Revisa **só o que está no stage** (`git diff --cached`), analisando apenas as
@@ -192,6 +236,7 @@ Opcional. Coloque na raiz do projeto onde você roda a CLI:
 {
   "idioma": "en",
   "useAi": false,
+  "identidade": { "nome": "Seu Nome", "email": "voce@exemplo.com" },
   "templatesExtras": [
     {
       "valor": "minha-api",
@@ -207,10 +252,12 @@ Opcional. Coloque na raiz do projeto onde você roda a CLI:
 | --- | --- | --- |
 | `idioma` | `"pt-BR"` | Idioma da **mensagem de commit**. Aceita `pt-BR` e `en`. |
 | `useAi` | `false` | Liga o modo IA por padrão (ainda pede confirmação antes de enviar). |
+| `identidade` | `null` | `{ nome, email }` usada só no commit quando o git não tem `user.name`/`user.email`. Não grava nada no git. |
 | `templatesExtras` | `[]` | Templates seus, apontando para uma pasta (`pasta` relativa ou absoluta). |
 
-Arquivo quebrado, idioma desconhecido ou item incompleto **não derrubam a CLI**:
-elas aparecem como aviso amarelo e a ferramenta segue com os padrões.
+Arquivo quebrado, idioma desconhecido, item incompleto ou `identidade` inválida
+**não derrubam a CLI**: elas aparecem como aviso amarelo e a ferramenta segue
+com os padrões.
 
 ---
 

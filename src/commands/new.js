@@ -7,7 +7,8 @@ import { execSync } from 'node:child_process';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { isGitInstalled, init, add, commit } from '../utils/git.js';
+import { isGitInstalled, init, add, commit, ehErroIdentidade } from '../utils/git.js';
+import { garantirIdentidade } from '../utils/identidade.js';
 import { validarNomeProjeto, listarTemplates, copiarTemplate, substituirPlaceholders } from '../utils/files.js';
 import { montarMensagem } from '../utils/rules.js';
 import { carregarConfig } from '../utils/config.js';
@@ -133,8 +134,36 @@ Exemplos:
             scope: '',
             description: `estrutura inicial ${escolhido.nome}`,
           });
-          commit(mensagem, destino);
-          console.log(chalk.green(`✔ Primeiro commit: ${mensagem}`));
+          const garantia = await garantirIdentidade(destino, {
+            config,
+            yes: opcoes.yes,
+          });
+          if (garantia.modo === 'cancelada') {
+            // O projeto existe e o stage está pronto: só falta o commit.
+            console.log(
+              chalk.yellow(
+                'Projeto criado, mas o primeiro commit não foi feito: identidade do git não configurada. ' +
+                  'Rode `git add -A && git commit` depois de configurar o git.',
+              ),
+            );
+          } else {
+            try {
+              commit(mensagem, destino, {
+                identidade: garantia.temporaria ? garantia.identidade : null,
+              });
+              console.log(chalk.green(`✔ Primeiro commit: ${mensagem}`));
+            } catch (erro) {
+              console.log(
+                chalk.yellow(
+                  `Projeto criado, mas o primeiro commit não foi feito: ${erro.message}. ` +
+                    'Rode `git add -A && git commit` depois de configurar o git.',
+                ),
+              );
+              // Só a identidade faltando não é fatal (o projeto está pronto);
+              // qualquer outro problema (gpg, hook, disco) sai com código 1.
+              if (!ehErroIdentidade(erro)) process.exitCode = 1;
+            }
+          }
         }
 
         mostrarProximosPassos(validacao.nome, opcoes.install && instalou, pm, escolhido);

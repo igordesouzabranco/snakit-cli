@@ -32,11 +32,93 @@ function executarGit(argumentos, { dir = process.cwd(), input = '' } = {}) {
     // O erro do execSync vem com o stderr do git dentro dele. Reprocessamos
     // para deixar a mensagem curta e útil para quem usa a CLI.
     const stderr = typeof erro.stderr === 'string' ? erro.stderr.trim() : '';
-    const novoErro = new Error(stderr || erro.message);
+    const tipo = reconhecerTipoDeErro(stderr);
+    const texto = tipo ? traduzirErro(stderr, tipo) : (stderr || erro.message);
+    const novoErro = new Error(texto);
     novoErro.status = erro.status;
     novoErro.stderr = stderr;
+    novoErro.tipo = tipo;
     throw novoErro;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Identidade de commit (user.name / user.email)
+// ---------------------------------------------------------------------------
+
+const PADRAO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Diz se um e-mail tem cara de e-mail (regex simples, sem rede). */
+export function emailValido(email) {
+  return typeof email === 'string' && PADRAO_EMAIL.test(email.trim());
+}
+
+/**
+ * Lê a identidade de commit que o git usaria em `dir`.
+ * Ordem igual à do git: variáveis GIT_AUTHOR_ e GIT_COMMITTER_ na frente,
+ * depois `git config user.name/user.email` (local + global).
+ * Sem identidade, devolve strings vazias — nunca lança erro.
+ */
+export function obterIdentidade(dir = process.cwd()) {
+  const lerConfig = (chave) => {
+    try {
+      return executarGit(`config --get ${chave}`, { dir });
+    } catch {
+      return '';
+    }
+  };
+  const primeiro = (...valores) => {
+    for (const valor of valores) {
+      const texto = String(valor ?? '').trim();
+      if (texto) return texto;
+    }
+    return '';
+  };
+  return {
+    nome: primeiro(
+      process.env.GIT_AUTHOR_NAME,
+      process.env.GIT_COMMITTER_NAME,
+      lerConfig('user.name'),
+    ),
+    email: primeiro(
+      process.env.GIT_AUTHOR_EMAIL,
+      process.env.GIT_COMMITTER_EMAIL,
+      lerConfig('user.email'),
+    ),
+  };
+}
+
+/** true quando há nome E email prontos para commitar. */
+export function temIdentidade(dir = process.cwd()) {
+  const { nome, email } = obterIdentidade(dir);
+  return Boolean(nome && email);
+}
+
+/** Tira aspas e caracteres de shell do valor (Windows usa cmd, POSIX sh). */
+function limparValor(valor) {
+  return String(valor).replace(/["`%$]/g, '').trim();
+}
+
+/**
+ * Flags `-c user.name=… -c user.email=…` para o comando de commit.
+ * Servem para a identidade temporária e para a do `.snakitrc.json`,
+ * que não estão gravadas em nenhum arquivo de configuração do git.
+ */
+function flagsIdentidade(identidade) {
+  if (!identidade || !identidade.nome || !identidade.email) return '';
+  const nome = limparValor(identidade.nome);
+  const email = limparValor(identidade.email);
+  if (!nome || !email) return '';
+  return `-c user.name="${nome}" -c user.email="${email}" `;
+}
+
+/**
+ * Grava identidade SÓ no repositório informado (`git config` sem --global).
+ * Nunca tocamos no ~/.gitconfig de ninguém.
+ */
+export function definirIdentidadeLocal(dir, { nome, email }) {
+  executarGit(`config user.name "${limparValor(nome)}"`, { dir });
+  executarGit(`config user.email "${limparValor(email)}"`, { dir });
 }
 
 /** Diz se o git está instalado e acessível no PATH. */
@@ -112,14 +194,93 @@ export function add(dir = process.cwd()) {
   return executarGit('add -A', { dir });
 }
 
+// ---------------------------------------------------------------------------
+// Erros do git em português: nada de derrubar o stderr cru no usuário
+// ---------------------------------------------------------------------------
+
+const PADROES_IDENTIDADE =
+  /Author identity unknown|unable to auto-detect email address|empty ident name|Please tell me who you are/i;
+const PADROES_GPG = /\bgpg\b|gpgsig|could not sign|commit\.gpgsign/i;
+const PADROES_HOOK =
+  /\.git[/\\]hooks|hook (failed|exited|declined)|hook(s)? .+ exited with code|(pre-commit|commit-msg|prepare-commit-msg) hook/i;
+
+/** 'identidade' | 'gpg' | 'hook' | null — o que o stderr está dizendo. */
+function reconhecerTipoDeErro(stderr) {
+  const texto = String(stderr || '');
+  if (PADROES_IDENTIDADE.test(texto)) return 'identidade';
+  if (PADROES_GPG.test(texto)) return 'gpg';
+  if (PADROES_HOOK.test(texto)) return 'hook';
+  return null;
+}
+
+/** Primeira linha que presta (sem os "hint:" de tutorial do git). */
+function primeiraLinhaUtil(stderr) {
+  const linhas = String(stderr || '')
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter(Boolean)
+    .filter((linha) => !/^(hint:|run |to set your account|omit --global|.*please tell me)/i.test(linha));
+  return linhas[0] || '';
+}
+
+/** Mensagem curta e acionável em pt-BR para cada tipo de erro conhecido. */
+function traduzirErro(stderr, tipo) {
+  if (tipo === 'identidade') {
+    return (
+      'O git não tem identidade de commit configurada (user.name e user.email). ' +
+      'Configure com `git config --global user.name "Seu Nome"` e ' +
+      '`git config --global user.email "voce@exemplo.com"`, ou use ' +
+      '`snakit commit --yes`, que usa uma identidade temporária.'
+    );
+  }
+  if (tipo === 'gpg') {
+    const motivo = primeiraLinhaUtil(stderr);
+    return (
+      'A assinatura GPG do commit falhou' +
+      (motivo ? `: ${motivo}` : '') +
+      '. Desative com `git config --global commit.gpgsign false` ou ajuste as chaves.'
+    );
+  }
+  // hook: uma linha só, sem o despejo inteiro
+  const motivo = primeiraLinhaUtil(stderr) || 'o hook recusou o commit';
+  return `Hook de commit rejeitou: ${motivo}`;
+}
+
+/**
+ * true quando o erro é de identidade ausente (usado para decidir exit code
+ * no `snakit new`, onde só isso não é fatal).
+ */
+export function ehErroIdentidade(erro) {
+  if (erro && erro.tipo === 'identidade') return true;
+  const texto = `${erro?.message || erro || ''} ${erro?.stderr || ''}`;
+  return PADROES_IDENTIDADE.test(texto);
+}
+
+// ---------------------------------------------------------------------------
+// Operações de escrita (aceitam identidade opcional)
+// ---------------------------------------------------------------------------
+
 /**
  * Cria o commit com a mensagem informada.
  * Usamos `git commit -F -`, que lê a mensagem do stdin: assim a mensagem
  * pode ter várias linhas (assunto + corpo), aspas e acentos sem quebrar.
  * Com `-m "texto"` o Windows quebraria a string no primeiro \n.
+ *
+ * `identidade` ({ nome, email }) é opcional: quando vem, vale SÓ para este
+ * comando, via `-c user.name=… -c user.email=…` (nada é gravado no git).
  */
-export function commit(message, dir = process.cwd()) {
-  return executarGit('commit -F -', { dir, input: message });
+export function commit(message, dir = process.cwd(), { identidade = null } = {}) {
+  return executarGit(`${flagsIdentidade(identidade)}commit -F -`, { dir, input: message });
+}
+
+/** Reescreve a mensagem do último commit (mesmo caminho seguro do commit). */
+export function amend(message, dir = process.cwd(), { identidade = null } = {}) {
+  return executarGit(`${flagsIdentidade(identidade)}commit --amend -F -`, { dir, input: message });
+}
+
+/** Cria tag anotada (o tagger também precisa de identidade). */
+export function criarTag(tag, mensagem, dir = process.cwd(), { identidade = null } = {}) {
+  return executarGit(`${flagsIdentidade(identidade)}tag -a ${tag} -m "${limparValor(mensagem)}"`, { dir });
 }
 
 /** Faz `git push`, se houver upstream configurado. */
