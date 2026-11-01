@@ -8,6 +8,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { IDIOMAS_SUPORTADOS } from './rules.js';
+import { emailValido } from './git.js';
 
 export const ARQUIVO_CONFIG = '.snakitrc.json';
 
@@ -15,6 +16,7 @@ const PADRAO = {
   idioma: 'pt-BR',
   useAi: false,
   templatesExtras: [],
+  identidade: null,
 };
 
 function ehTemplateValido(item) {
@@ -78,6 +80,24 @@ export function carregarConfig(dir = process.cwd()) {
     const rejeitados = bruto.templatesExtras.length - config.templatesExtras.length;
     if (rejeitados > 0) {
       config.aviso = `${rejeitados} item(ns) de "templatesExtras" estão incompletos e foram ignorados.`;
+    }
+  }
+
+  // identidade de commit de emergência: só avisa, nunca derruba a CLI.
+  if ('identidade' in bruto) {
+    const id = bruto.identidade;
+    const valida =
+      id !== null &&
+      typeof id === 'object' &&
+      !Array.isArray(id) &&
+      typeof id.nome === 'string' &&
+      id.nome.trim() !== '' &&
+      emailValido(id.email);
+    if (valida) {
+      config.identidade = { nome: id.nome.trim(), email: id.email.trim() };
+    } else {
+      config.aviso =
+        'Chave "identidade" inválida (esperado { "nome": "...", "email": "..." }). Ignorada.';
     }
   }
 

@@ -30,6 +30,10 @@ export function comandoInit() {
   // Estilo da mensagem (conventional | gitmoji)
   "estilo": "conventional",
 
+  // Identidade de commit usada pelo snakit quando o git não tem
+  // user.name/user.email (não altera a configuração do git de ninguém)
+  // "identidade": { "nome": "Seu Nome", "email": "voce@exemplo.com" },
+
   // Templates extras
   "templatesExtras": []
 }\n`;
