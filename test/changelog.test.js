@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parsearAssunto, formatarItem, agruparCommits } from '../src/commands/changelog.js';
+import { parsearAssunto, formatarItem, agruparCommits, tituloSecao } from '../src/commands/changelog.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temporarias = [];
@@ -123,6 +123,23 @@ describe('agruparCommits — en', () => {
   });
 });
 
+describe('tituloSecao', () => {
+  test('HEAD vira "Não lançado" em pt-BR e "Unreleased" em en', () => {
+    assert.equal(tituloSecao('HEAD', 'pt-BR'), 'Não lançado');
+    assert.equal(tituloSecao('HEAD', 'en'), 'Unreleased');
+    assert.equal(tituloSecao(undefined, 'pt-BR'), 'Não lançado');
+  });
+
+  test('tag vira versão com data, sem o v na frente', () => {
+    assert.equal(tituloSecao('v1.3.2', 'pt-BR', '2026-10-31'), '1.3.2 — 2026-10-31');
+    assert.equal(tituloSecao('1.3.2', 'en', '2026-10-31'), '1.3.2 — 2026-10-31');
+  });
+
+  test('sem data fica só a versão', () => {
+    assert.equal(tituloSecao('v2.0.0', 'pt-BR'), '2.0.0');
+  });
+});
+
 describe('snakit changelog — integração', () => {
   function rodarChangelog(pasta, ...args) {
     try {
@@ -172,5 +189,14 @@ describe('snakit changelog — integração', () => {
     const { saida } = rodarChangelog(pasta);
     assert.ok(saida.includes('## Unreleased'));
     assert.ok(saida.includes('### Features'));
+  });
+
+  test('--to <tag> usa "## versão — data" na seção', () => {
+    const pasta = repoComCommits();
+    execFileSync('git', ['tag', 'v1.0.0'], { cwd: pasta });
+    const { status, saida } = rodarChangelog(pasta, '--to', 'v1.0.0');
+    assert.equal(status, 0);
+    assert.match(saida, /## 1\.0\.0 — \d{4}-\d{2}-\d{2}/);
+    assert.ok(!saida.includes('## v1.0.0'), 'não deve imprimir o v na frente');
   });
 });

@@ -123,10 +123,22 @@ export function agruparCommits(commits, idioma = 'pt-BR') {
   return secoes;
 }
 
-/** Título da seção: "Não lançado"/"Unreleased" quando o fim é HEAD. */
-function tituloSecao(to, idioma) {
+/** Data curta do último commit de uma ref (tag, branch, hash). */
+function obterDataRef(ref) {
+  try {
+    return execSync(`git log -1 --date=short --format=%ad ${ref}`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+  } catch { return ''; }
+}
+
+/** Título da seção: "Não lançado"/"Unreleased" quando o fim é HEAD;
+ *  quando é uma tag/histórico, vira "1.3.2 — 2026-10-31" (sem o "v"). */
+export function tituloSecao(to, idioma, dataFinal = '') {
   if (!to || to === 'HEAD') return idioma === 'en' ? 'Unreleased' : 'Não lançado';
-  return to;
+  const versao = String(to).replace(/^v/, '');
+  return dataFinal ? `${versao} — ${dataFinal}` : versao;
 }
 
 export function comandoChangelog() {
@@ -145,8 +157,9 @@ export function comandoChangelog() {
       const to = opcoes.to || 'HEAD';
       const commits = obterCommits(from, to);
       const secoes = agruparCommits(commits, idioma);
+      const dataFinal = (!to || to === 'HEAD') ? '' : obterDataRef(to);
 
-      let md = `# Changelog\n\n## ${tituloSecao(to, idioma)}\n`;
+      let md = `# Changelog\n\n## ${tituloSecao(to, idioma, dataFinal)}\n`;
       for (const secao of secoes) {
         md += `\n### ${secao.titulo}\n`;
         for (const commit of secao.itens) {
