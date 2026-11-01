@@ -25,29 +25,6 @@
 ### Manutenção
 - **github:** identidade de git, workflow_dispatch e permissoes minimas (18c235f, 2026-10-31)
 
-### Outros
-- Merge pull request #9 from igordesouzabranco/fix-ci (8eb538f, 2026-10-31)
-  - Fix ci
-- Fix capitalization of project name in README (6cf8c18, 2026-10-31)
-  - Corrected the capitalization of the project name in the README.
-- Merge pull request #8 from igordesouzabranco/fix-pos-1.3.1 (4392388, 2026-10-31)
-  - Fix pos 1.3.1
-- Merge pull request #7 from igordesouzabranco/fase-3-diferenciais (719a5ed, 2026-10-29)
-  - atualização package.json e template.js
-- Merge pull request #6 from igordesouzabranco/fase-3-diferenciais (1412424, 2026-10-29)
-  - Fase 3 diferenciais
-- Merge pull request #5 from igordesouzabranco/master (22588cd, 2026-10-29)
-  - atualizaçao package.json
-- Merge pull request #4 from igordesouzabranco/fase-3-diferenciais (5231b1c, 2026-10-29)
-  - Fase 3 diferenciais
-- Merge pull request #3 from igordesouzabranco/fase-2-toolkit (4d74f86, 2026-10-29)
-  - Fase 2 toolkit
-- Merge pull request #2 from igordesouzabranco/fase-1-commit (e083654, 2026-10-29)
-  - Fase 1 commit
-- Merge pull request #1 from igordesouzabranco/fase-0-correcoes (4cb24c9, 2026-10-29)
-  - feat: fase 0 - correções iniciais, .gitignore, rules, --allow-send, CI
-
----
 
 ## 1.3.2 — 2026-10-31
 
