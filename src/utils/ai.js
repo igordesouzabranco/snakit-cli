@@ -55,16 +55,22 @@ export function obterModelo() {
   return (process.env.SNAKIT_MODEL ?? '').trim() || MODELO_PADRAO;
 }
 
+/** Caminho com / sempre (no Windows o git usa /, mas defensivo p/ path.join). */
+function normalizarCaminho(caminho) {
+  return String(caminho).replace(/\\/g, '/');
+}
+
 function nomeBase(caminho) {
-  const partes = caminho.split('/');
+  const partes = normalizarCaminho(caminho).split('/');
   return partes[partes.length - 1];
 }
 
 /** Diz se um arquivo não pode ser enviado para a API. */
 export function ehArquivoExcluido(caminho) {
-  const base = nomeBase(caminho);
+  const normalizado = normalizarCaminho(caminho);
+  const base = nomeBase(normalizado);
 
-  if (caminho.startsWith('node_modules/')) return true;
+  if (normalizado.startsWith('node_modules/')) return true;
   if (/^\.env($|\.)/.test(base)) return true; // .env, .env.local, .env.production
   if (/\.(pem|key)$/i.test(base)) return true;
   if (ARQUIVOS_DE_CADEADO.has(base)) return true;

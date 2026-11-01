@@ -32,6 +32,13 @@ describe('ehArquivoExcluido — o que NUNCA sai da máquina', () => {
     assert.equal(ehArquivoExcluido('id_rsa.key'), true);
   });
 
+  test('caminho Windows com \\ é reconhecido igual (normaliza separators)', () => {
+    assert.equal(ehArquivoExcluido('node_modules\\pkg\\index.js'), true);
+    assert.equal(ehArquivoExcluido('certs\\servidor.pem'), true);
+    assert.equal(ehArquivoExcluido('.env.local'), true);
+    assert.equal(ehArquivoExcluido('src\\app.js'), false);
+  });
+
   test('lockfiles', () => {
     for (const caminho of ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'go.sum']) {
       assert.equal(ehArquivoExcluido(caminho), true, `esperava excluir ${caminho}`);

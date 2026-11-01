@@ -122,6 +122,11 @@ describe('descobrirEscopo', () => {
     assert.equal(descobrirEscopo([alterado('README.md'), novo('src/a.js')]), '');
   });
 
+  test('caminho Windows com \\ gera o mesmo escopo (normaliza separators)', () => {
+    assert.equal(descobrirEscopo([novo('controllers\\user.js')]), 'controllers');
+    assert.equal(descobrirEscopo([novo('controllers\\a.js'), novo('models\\b.js')]), '');
+  });
+
   test('usa só a primeira pasta, mesmo aninhada', () => {
     assert.equal(descobrirEscopo([novo('src/utils/ajuda.js')]), 'src');
   });

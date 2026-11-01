@@ -59,21 +59,28 @@ const PADROES_DE_CONFIGURACAO = [
   /^build\.gradle$/,
 ];
 
+/** Caminho com / sempre, para comparações iguais no Windows e no Linux. */
+function normalizarCaminho(caminho) {
+  return String(caminho).replace(/\\/g, '/');
+}
+
 function baseDoArquivo(caminho) {
-  const partes = caminho.split('/');
+  const partes = normalizarCaminho(caminho).split('/');
   return partes[partes.length - 1];
 }
 
 function ehArquivoDeTeste(caminho) {
-  return /\.(test|spec)\.(js|mjs|cjs|jsx|ts|tsx|py|java|go|rs)$/i.test(caminho) ||
-         /test_.*\.py$|.*_test\.py$|.*Test\.java$|.*_test\.go$/i.test(caminho) ||
-         /(__tests__|tests)\//i.test(caminho);
+  const normalizado = normalizarCaminho(caminho);
+  return /\.(test|spec)\.(js|mjs|cjs|jsx|ts|tsx|py|java|go|rs)$/i.test(normalizado) ||
+         /test_.*\.py$|.*_test\.py$|.*Test\.java$|.*_test\.go$/i.test(normalizado) ||
+         /(__tests__|tests)\//i.test(normalizado);
 }
 
 function ehDocumentacao(caminho) {
-  const base = baseDoArquivo(caminho);
-  const emDocs = caminho.startsWith('docs/');
-  const ehMd = caminho.endsWith('.md');
+  const normalizado = normalizarCaminho(caminho);
+  const base = baseDoArquivo(normalizado);
+  const emDocs = normalizado.startsWith('docs/');
+  const ehMd = normalizado.endsWith('.md');
   const ehReadme = /^readme/i.test(base);
   return emDocs || ehMd || ehReadme;
 }
@@ -125,7 +132,7 @@ export function descobrirEscopo(arquivos) {
   const pastas = new Set();
 
   for (const { file } of arquivos) {
-    const partes = file.split('/');
+    const partes = normalizarCaminho(file).split('/');
     if (partes.length < 2) return ''; // arquivo na raiz não gera escopo
     pastas.add(partes[0]);
   }
