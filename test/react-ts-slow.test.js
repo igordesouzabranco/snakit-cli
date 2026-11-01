@@ -6,31 +6,32 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pastaTemporaria, limparPastasTemporarias } from './helpers/git.js';
+
+// O `snakit new` roda git init + commit dentro do projeto gerado: em CI não
+// há identidade de git, então definimos a nossa antes (hermético).
+process.env.GIT_AUTHOR_NAME = 'CI';
+process.env.GIT_AUTHOR_EMAIL = 'ci@snakit.dev';
+process.env.GIT_COMMITTER_NAME = 'CI';
+process.env.GIT_COMMITTER_EMAIL = 'ci@snakit.dev';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RODAR = process.env.SNAKIT_SLOW_TESTS === '1';
-const temporarias = [];
 
-after(() => {
-  for (const pasta of temporarias) {
-    rmSync(pasta, { recursive: true, force: true });
-  }
-});
+after(limparPastasTemporarias);
 
 describe('react-ts — fumaça lenta (SNAKIT_SLOW_TESTS=1)', () => {
   test(
     'snakit new gera o projeto e `npm run build` passa',
     { skip: RODAR ? false : 'pulado: defina SNAKIT_SLOW_TESTS=1 para rodar (usa internet)' },
     () => {
-      const raiz = mkdtempSync(path.join(tmpdir(), 'snakit-slow-'));
-      temporarias.push(raiz);
+      const raiz = pastaTemporaria('snakit-slow-');
 
       execFileSync(
-        'node',
+        process.execPath,
         [path.join(RAIZ, 'bin', 'snakit.js'), 'new', 'x', '--template', 'react-ts', '--yes', '--no-install'],
         { cwd: raiz, stdio: 'pipe' },
       );

@@ -27,10 +27,11 @@ after(() => {
   }
 });
 
-/** Roda a CLI fora de repositório git (para não colidir com configs locais). */
+/** Roda a CLI fora de repositório git (para não colidir com configs locais).
+ *  process.execPath: o binário do Node atual, sem depender do PATH. */
 function rodarCli(...argumentos) {
   try {
-    const saida = execFileSync('node', [BIN, ...argumentos], {
+    const saida = execFileSync(process.execPath, [BIN, ...argumentos], {
       cwd: pastaTemporaria(),
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],

@@ -5,26 +5,15 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { criarRepoTemporario, limparPastasTemporarias } from './helpers/git.js';
 import { parsearAssunto, formatarItem, agruparCommits, tituloSecao } from '../src/commands/changelog.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const temporarias = [];
 
-function pastaTemporaria(prefixo = 'snakit-changelog-') {
-  const pasta = mkdtempSync(path.join(tmpdir(), prefixo));
-  temporarias.push(pasta);
-  return pasta;
-}
-
-after(() => {
-  for (const pasta of temporarias) {
-    rmSync(pasta, { recursive: true, force: true });
-  }
-});
+after(limparPastasTemporarias);
 
 describe('parsearAssunto', () => {
   test('separa tipo, escopo e descrição', () => {
@@ -143,7 +132,7 @@ describe('tituloSecao', () => {
 describe('snakit changelog — integração', () => {
   function rodarChangelog(pasta, ...args) {
     try {
-      const saida = execFileSync('node', [path.join(RAIZ, 'bin', 'snakit.js'), 'changelog', '--stdout', ...args], {
+      const saida = execFileSync(process.execPath, [path.join(RAIZ, 'bin', 'snakit.js'), 'changelog', '--stdout', ...args], {
         cwd: pasta,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -155,10 +144,8 @@ describe('snakit changelog — integração', () => {
   }
 
   function repoComCommits() {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
-    execFileSync('git', ['config', 'user.email', 'teste@snakit.dev'], { cwd: pasta });
-    execFileSync('git', ['config', 'user.name', 'Snakit'], { cwd: pasta });
+    // Identidade e branch vêm do helper (hermético para CI).
+    const pasta = criarRepoTemporario();
     for (const [indice, mensagem] of [
       'feat: adiciona rota',
       'fix(api): corrige validação',

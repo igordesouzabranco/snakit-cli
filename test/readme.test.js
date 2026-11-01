@@ -27,7 +27,7 @@ after(() => {
 });
 
 function comandosDaCli() {
-  const saida = execFileSync('node', [BIN, '--help'], {
+  const saida = execFileSync(process.execPath, [BIN, '--help'], {
     cwd: pastaTemporaria(),
     encoding: 'utf8',
     stdio: ['pipe', 'pipe', 'pipe'],
