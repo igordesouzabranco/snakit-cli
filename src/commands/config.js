@@ -6,6 +6,7 @@ import { carregarConfig } from '../utils/config.js';
 
 export function comandoConfig() {
   const cmd = new Command('config');
+  cmd.description('Gerencia o .snakitrc.json (get, set, list, path).');
 
   cmd.command('get')
     .description('Mostra uma chave da configuração')
