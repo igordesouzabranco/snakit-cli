@@ -1,0 +1,4 @@
+# Normaliza fim de linha: texto com LF, e os templates sempre com LF
+# (o npm empacota os bytes do disco; CRLF/BOM quebram JSON e Python).
+* text=auto eol=lf
+src/templates/** text eol=lf

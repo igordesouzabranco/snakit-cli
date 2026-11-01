@@ -135,6 +135,42 @@ describe('templates — raiz', () => {
   });
 });
 
+describe('templates — codificação', () => {
+  const raizTemplates = path.join(RAIZ, 'src', 'templates');
+
+  test('nenhum arquivo em src/templates/ começa com BOM', () => {
+    for (const relativo of listarTodosArquivos(raizTemplates)) {
+      const buffer = readFileSync(path.join(raizTemplates, relativo));
+      const bom = buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf;
+      assert.ok(!bom, `template com BOM: ${relativo}`);
+    }
+  });
+
+  test('todos os arquivos de template usam LF e têm linha final', () => {
+    for (const relativo of listarTodosArquivos(raizTemplates)) {
+      const texto = readFileSync(path.join(raizTemplates, relativo), 'utf8');
+      assert.ok(!texto.includes('\r'), `template com CR: ${relativo}`);
+      assert.ok(texto.endsWith('\n'), `template sem linha final: ${relativo}`);
+    }
+  });
+
+  test('todo package.json de template é JSON válido (mesmo com BOM, se houvesse)', () => {
+    for (const { valor } of listarTemplates()) {
+      const pacote = path.join(raizTemplates, valor, 'package.json');
+      if (!existsSync(pacote)) continue;
+      const texto = readFileSync(pacote, 'utf8').replace(/^\uFEFF/, '');
+      assert.doesNotThrow(() => JSON.parse(texto), `package.json inválido em ${valor}`);
+    }
+  });
+
+  test('package.json da raiz é JSON válido', () => {
+    assert.doesNotThrow(
+      () => JSON.parse(readFileSync(path.join(RAIZ, 'package.json'), 'utf8')),
+      'package.json da raiz inválido',
+    );
+  });
+});
+
 /** Diz se há algum python utilizável no PATH. */
 function pythonDisponivel() {
   for (const py of ['python3', 'python']) {
