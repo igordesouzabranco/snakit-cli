@@ -129,6 +129,17 @@ describe('regras de aviso', () => {
     assert.ok(achados.some((a) => a.regra === 'debugger'));
   });
 
+  test('aviso com segredo na linha também sai mascarado (não vaza no log de CI)', () => {
+    const achados = analisarLinhas(
+      linhasDe('src/app.js', ['console.log("AKIAIOSFODNN7EXAMPLE")']),
+    );
+    const aviso = achados.find((a) => a.regra === 'console-debug');
+    assert.ok(aviso, 'esperava aviso de console-debug');
+    assert.equal(aviso.nivel, 'aviso');
+    assert.match(aviso.trecho, /AKIA…/);
+    assert.ok(!aviso.trecho.includes('AKIAIOSFODNN7EXAMPLE'), 'trecho do aviso vazou a chave inteira');
+  });
+
   test('não acusa console.log em test/, bin/, scripts/ nem *.test.*', () => {
     const caminhos = [
       'test/a.js',
@@ -280,6 +291,18 @@ describe('snakit check — integração (CLI)', () => {
     const json = JSON.parse(saida);
     assert.deepEqual(json.erros, []);
     assert.equal(json.avisos[0].regra, 'console-debug');
+  });
+
+  test('--output json também mascara o segredo no aviso', () => {
+    const pasta = pastaTemporaria();
+    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    writeFileSync(path.join(pasta, 'a.js'), 'console.log("AKIAIOSFODNN7EXAMPLE")\n');
+    execFileSync('git', ['add', 'a.js'], { cwd: pasta });
+
+    const { saida } = rodarCheck(pasta, '--output', 'json');
+    assert.ok(!saida.includes('AKIAIOSFODNN7EXAMPLE'), 'JSON vazou a chave inteira');
+    const json = JSON.parse(saida);
+    assert.match(json.avisos[0].trecho, /AKIA…/);
   });
 
   test('--strict faz aviso sair com 1', () => {
