@@ -21,6 +21,7 @@ import {
 } from '../utils/git.js';
 import { gerarSugestao } from '../utils/rules.js';
 import { carregarConfig } from '../utils/config.js';
+import { garantirIdentidade } from '../utils/identidade.js';
 import {
   obterChave,
   filtrarDiff,
@@ -247,7 +248,20 @@ Exemplos:
           return;
         }
 
-        commit(mensagemFinal);
+        // Identidade garantida ANTES de commitar (pergunta, usa a
+        // temporária ou a do .snakitrc.json — nunca grava no global).
+        const garantia = await garantirIdentidade(process.cwd(), {
+          config,
+          yes: opcoes.yes,
+        });
+        if (garantia.modo === 'cancelada') {
+          console.log(chalk.yellow('Commit cancelado: identidade do git não configurada.'));
+          return;
+        }
+
+        commit(mensagemFinal, process.cwd(), {
+          identidade: garantia.temporaria ? garantia.identidade : null,
+        });
         console.log(chalk.green(`✔ Commit criado: ${mensagemFinal}`));
 
         if (opcoes.push) {
