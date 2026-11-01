@@ -55,16 +55,31 @@ export function validarNomeProjeto(nome) {
 
 // Catálogo dos templates: nome amigável para o menu/commit + descrição.
 // A ordem define a ordem do menu do `snakit new`.
+// `passoInstalacao` diz como o usuário instala dependências ('npm' ou
+// 'nenhum'); `proximosPassos` (opcional) substitui os comandos genéricos
+// de npm nos "Próximos passos" do `snakit new`.
 const CATALOGO = [
-  { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)' },
-  { valor: 'express-ts', nome: 'Express + TypeScript', descricao: 'Express MVC com TypeScript (ts-node, tsc)' },
-  { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite' },
-  { valor: 'react-ts', nome: 'React + TypeScript', descricao: 'React com Vite e TypeScript' },
-  { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)' },
-  { valor: 'fastapi', nome: 'FastAPI', descricao: 'API Python com FastAPI' },
-  { valor: 'django', nome: 'Django', descricao: 'Projeto Django mínimo' },
-  { valor: 'cli-node', nome: 'CLI Node', descricao: 'CLI em Node.js com Commander e teste' },
-  { valor: 'lib-npm', nome: 'Lib npm', descricao: 'Biblioteca npm (ESM, exports, teste)' },
+  { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)', passoInstalacao: 'npm' },
+  { valor: 'express-ts', nome: 'Express + TypeScript', descricao: 'Express MVC com TypeScript (ts-node, tsc)', passoInstalacao: 'npm' },
+  { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite', passoInstalacao: 'npm' },
+  { valor: 'react-ts', nome: 'React + TypeScript', descricao: 'React com Vite e TypeScript', passoInstalacao: 'npm' },
+  { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)', passoInstalacao: 'npm' },
+  {
+    valor: 'fastapi',
+    nome: 'FastAPI',
+    descricao: 'API Python com FastAPI',
+    passoInstalacao: 'nenhum',
+    proximosPassos: ['pip install -r requirements.txt', 'uvicorn app.main:app --reload'],
+  },
+  {
+    valor: 'django',
+    nome: 'Django',
+    descricao: 'Projeto Django mínimo que roda',
+    passoInstalacao: 'nenhum',
+    proximosPassos: ['pip install -r requirements.txt', 'python manage.py runserver'],
+  },
+  { valor: 'cli-node', nome: 'CLI Node', descricao: 'CLI em Node.js com Commander e teste', passoInstalacao: 'npm' },
+  { valor: 'lib-npm', nome: 'Lib npm', descricao: 'Biblioteca npm (ESM, exports, teste)', passoInstalacao: 'npm' },
 ];
 
 /**
@@ -116,13 +131,14 @@ export function copiarTemplate(template, destino, config = {}) {
 
   cpSync(origem, destino, { recursive: true });
 
-  // Renomear arquivos que começam com _ para . (npm ignora .gitignore no publish)
+  // Renomear arquivos que começam com _ para . (npm ignora .gitignore no publish).
+  // Só um underscore no início: __init__.py não é placeholder de dotfile.
   function renomearRecursivo(dir) {
     for (const item of readdirSync(dir, { withFileTypes: true })) {
       const caminho = path.join(dir, item.name);
       if (item.isDirectory()) {
         renomearRecursivo(caminho);
-      } else if (item.name.startsWith('_')) {
+      } else if (item.name.startsWith('_') && !item.name.startsWith('__')) {
         renameSync(caminho, path.join(dir, '.' + item.name.slice(1)));
       }
     }

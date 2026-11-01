@@ -31,10 +31,14 @@ function instalarDependencias(destino, pm = 'npm') {
   }
 }
 
-function mostrarProximosPassos(nome, instalou, pm = 'npm') {
+function mostrarProximosPassos(nome, instalou, pm = 'npm', template = null) {
   console.log('');
   console.log(chalk.bold('Próximos passos:'));
   console.log(`  cd ${nome}`);
+  if (template?.proximosPassos) {
+    for (const comando of template.proximosPassos) console.log(`  ${comando}`);
+    return;
+  }
   if (!instalou) console.log(`  ${pm} install`);
   console.log(`  ${pm} start`);
 }
@@ -113,8 +117,14 @@ Exemplos:
         if (usarGit) init(destino);
 
         const pm = opcoes.pm || (process.env.npm_config_user_agent || '').match(/npm|pnpm|yarn|bun/i)?.[0]?.toLowerCase() || 'npm';
-        const instalou = opcoes.install ? instalarDependencias(destino, pm) : false;
-        if (!opcoes.install) console.log(chalk.yellow('• `npm install` pulado (--no-install).'));
+        // Templates Python (passoInstalacao 'nenhum') não rodam npm install.
+        const usaNpm = escolhido.passoInstalacao !== 'nenhum';
+        const instalou = usaNpm && opcoes.install ? instalarDependencias(destino, pm) : false;
+        if (!usaNpm) {
+          console.log(chalk.yellow('• Template sem npm: as dependências são instaladas com pip (ver README do projeto).'));
+        } else if (!opcoes.install) {
+          console.log(chalk.yellow('• `npm install` pulado (--no-install).'));
+        }
 
         if (usarGit) {
           add(destino);
@@ -127,7 +137,7 @@ Exemplos:
           console.log(chalk.green(`✔ Primeiro commit: ${mensagem}`));
         }
 
-        mostrarProximosPassos(validacao.nome, opcoes.install && instalou, pm);
+        mostrarProximosPassos(validacao.nome, opcoes.install && instalou, pm, escolhido);
       } catch (erro) {
         falhar(String(erro.message || erro));
       }

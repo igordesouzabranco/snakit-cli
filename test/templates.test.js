@@ -5,6 +5,7 @@
 
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -131,5 +132,99 @@ describe('templates — raiz', () => {
 
   test('RAIZ dos templates existe para os testes de codificação', () => {
     assert.ok(existsSync(path.join(RAIZ, 'src', 'templates')));
+  });
+});
+
+/** Diz se há algum python utilizável no PATH. */
+function pythonDisponivel() {
+  for (const py of ['python3', 'python']) {
+    try {
+      execFileSync(py, ['--version'], { stdio: 'pipe' });
+      return true;
+    } catch { /* tenta o próximo nome */ }
+  }
+  return false;
+}
+
+/** Compila todos os .py de uma pasta com python -m py_compile. */
+function compilarPython(dir) {
+  const pythons = ['python3', 'python'];
+  const arquivosPy = listarTodosArquivos(dir)
+    .filter((a) => a.endsWith('.py'))
+    .map((a) => path.join(dir, a));
+  if (arquivosPy.length === 0) return;
+
+  for (const py of pythons) {
+    try {
+      execFileSync(py, ['-m', 'py_compile', ...arquivosPy], { stdio: 'pipe' });
+      return;
+    } catch { /* tenta o próximo nome */ }
+  }
+  assert.fail('nenhum python conseguiu compilar os arquivos de ' + dir);
+}
+
+describe('templates — Django', () => {
+  test('gera estrutura completa que roda, com nome de pacote normalizado', () => {
+    const destino = gerarTemplate('django', 'meu-app');
+    const pacote = path.join(destino, 'meu_app');
+
+    for (const arquivo of ['manage.py', 'requirements.txt', 'README.md']) {
+      assert.ok(existsSync(path.join(destino, arquivo)), `falta ${arquivo}`);
+    }
+    for (const arquivo of ['__init__.py', 'settings.py', 'urls.py', 'wsgi.py', 'asgi.py']) {
+      assert.ok(existsSync(path.join(pacote, arquivo)), `falta meu_app/${arquivo}`);
+    }
+
+    const settings = readFileSync(path.join(pacote, 'settings.py'), 'utf8');
+    assert.ok(settings.includes('SECRET_KEY'), 'settings deve ler SECRET_KEY');
+    assert.ok(settings.includes('DJANGO_SECRET_KEY'), 'SECRET_KEY deve vir de variável de ambiente');
+    assert.ok(settings.includes("'meu_app'") || settings.includes('"meu_app"') || settings.includes('meu_app.'), 'settings deve referenciar o pacote normalizado');
+
+    const urls = readFileSync(path.join(pacote, 'urls.py'), 'utf8');
+    assert.match(urls, /mensagem/);
+    assert.match(urls, /Projeto meu-app no ar/);
+
+    const manage = readFileSync(path.join(destino, 'manage.py'), 'utf8');
+    assert.ok(manage.includes('meu_app.settings'));
+
+    const requirements = readFileSync(path.join(destino, 'requirements.txt'), 'utf8');
+    assert.match(requirements, /Django>=\d/);
+
+    if (pythonDisponivel()) compilarPython(destino);
+  });
+
+  test("catálogo declara instalação 'nenhum' e comandos Python nos próximos passos", () => {
+    for (const item of listarTemplates()) {
+      if (item.valor === 'django' || item.valor === 'fastapi') {
+        assert.equal(item.passoInstalacao, 'nenhum', `${item.valor} não deve instalar com npm`);
+        assert.ok(Array.isArray(item.proximosPassos), `${item.valor} deve ter proximosPassos`);
+        assert.ok(item.proximosPassos.some((c) => c.startsWith('pip install')), `${item.valor} deve sugerir pip install`);
+        assert.ok(!item.proximosPassos.some((c) => c.includes('npm')), `${item.valor} não deve sugerir npm`);
+      }
+    }
+  });
+});
+
+describe('templates — FastAPI', () => {
+  test('gera app com / e /saude, requirements com faixa e README', () => {
+    const destino = gerarTemplate('fastapi', 'minha-api');
+
+    for (const arquivo of ['app/__init__.py', 'app/main.py', 'requirements.txt', 'README.md']) {
+      assert.ok(existsSync(path.join(destino, arquivo)), `falta ${arquivo}`);
+    }
+
+    const main = readFileSync(path.join(destino, 'app', 'main.py'), 'utf8');
+    assert.match(main, /@app\.get\('\/'\)/);
+    assert.match(main, /@app\.get\('\/saude'\)/);
+
+    const requirements = readFileSync(path.join(destino, 'requirements.txt'), 'utf8');
+    assert.match(requirements, /fastapi>=/);
+    assert.match(requirements, /uvicorn\[standard\]>=/);
+    assert.ok(requirements.endsWith('\n'), 'requirements.txt deve terminar com quebra de linha');
+
+    const readme = readFileSync(path.join(destino, 'README.md'), 'utf8');
+    assert.ok(readme.includes('uvicorn app.main:app --reload'));
+
+    if (pythonDisponivel()) compilarPython(destino);
   });
 });
