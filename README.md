@@ -2,7 +2,7 @@
 
 CLI com **scaffolder de projetos** e **gerador de mensagens de commit** no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/).
 
-Dois comandos, nada de mágica:
+Ferramentas para o dia a dia do repositório, nada de mágica:
 
 | Comando | O que faz |
 | --- | --- |
@@ -21,7 +21,7 @@ Dois comandos, nada de mágica:
 | `snakit init` | Cria `.snakitrc.json` comentado. |
 | `snakit doctor` | Verifica ambiente e configuração. |
 | `snakit pr` | Gera título/descrição PR (`--base`, `--ai`, `--copy`). |
-| `snakit check` | Revisão local (`--fix`). |
+| `snakit check` | Revisão do stage (`--strict`, `--output json`). |
 | `snakit readme` | Gera `README.md` (`--force`). |
 | `snakit stats` | Estatísticas (`--since`, `--until`, `--output json`). |
 | `snakit branch <desc>` | Sugere nome `tipo/descricao-kebab`. |
@@ -70,13 +70,19 @@ snakit new minha-loja --no-install --no-git   # só monta a estrutura
 | --- | --- |
 | **Express MVC** | `app.js`, `controllers/`, `models/`, `routes/`, `package.json` |
 | **Express + TypeScript** | MVC com `ts-node`, `tsc`, `src/app.ts` |
-| **React** | Vite mínimo |
-| **React + TypeScript** | Vite + TypeScript |
+| **React** | Vite mínimo (`index.html`, `vite.config.js`, `src/App.jsx`) |
+| **React + TypeScript** | Vite + TS completo: `vite.config.ts`, `tsconfig`, `src/App.tsx`, teste com vitest |
 | **Node puro** | `index.js` + `package.json` |
-| **FastAPI** | Python: `app/main.py`, `requirements.txt` |
-| **Django** | `manage.py`, `wsgi.py`, `requirements.txt` |
+| **FastAPI** | Python: `app/main.py` (rotas `/` e `/saude`), `requirements.txt`, README |
+| **Django** | Python que roda: `manage.py`, pacote do projeto (`settings`, `urls`, `wsgi`, `asgi`), README |
 | **CLI Node** | `bin/cli.js` com `commander` |
 | **Lib npm** | ESM (`exports`), `src/index.js`, teste |
+
+Os templates Python (**FastAPI** e **Django**) não usam npm: os "Próximos passos"
+mostram `pip install -r requirements.txt` e o comando do servidor
+(`uvicorn app.main:app --reload` ou `python manage.py runserver`).
+No Django, `-` e `.` do nome viram `_` no nome do pacote Python
+(`minha-loja` → pasta `minha_loja`).
 
 O nome do projeto é validado (sem espaços, sem acentos, sem caracteres fora de
 letras/números/`.`/`-`/`_`) e se a pasta já existir a CLI aborta em vez de apagar
@@ -111,6 +117,34 @@ A CLI sai com **código 1** e uma mensagem que já diz o que fazer quando:
 - você não está dentro de um repositório git;
 - não há nada no stage (`snakit` sugere rodar `git add`);
 - o nome do comando é desconhecido.
+
+## `snakit check`
+
+Revisa **só o que está no stage** (`git diff --cached`), analisando apenas as
+linhas adicionadas.
+
+- **Erros** (exit 1): chaves AWS (`AKIA…`), Anthropic (`sk-ant-…`), OpenAI
+  (`sk-…`), tokens GitHub (`ghp_…`), chaves privadas, credenciais literais em
+  código (`password = "valor-de-8+caracteres"`), e os arquivos `.env*`
+  (exceto `.env.example`), `*.pem` e `*.key` no stage.
+- **Avisos** (exit 0; exit 1 com `--strict`): `console.log`/`console.debug` e
+  `debugger` em código de aplicação (não em `test/`, `bin/` nem `scripts/`),
+  `TODO`/`FIXME` novos, arquivo acima de 1 MB e binário grande no stage.
+
+Para aceitar um achado de propósito, escreva `snakit-ignore` no fim da linha:
+
+```js
+const token = "chave-só-de-exemplo"; // snakit-ignore
+```
+
+```bash
+snakit check                 # saída agrupada por nível, com arquivo:linha
+snakit check --strict        # avisos também dão exit 1
+snakit check --output json   # saída em JSON
+```
+
+Os segredos nunca são impressos inteiros: só os 4 primeiros caracteres
+(ex.: `AKIA…`).
 
 ---
 
@@ -211,6 +245,15 @@ nativo do próprio Node.
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | — | Chave da API. Nunca é gravada em arquivo nem impressa. |
 | `SNAKIT_MODEL` | `claude-haiku-5-5` | Modelo usado. Troque se quiser outro. |
+| `SNAKIT_SLOW_TESTS` | (desligado) | `1` habilita os testes lentos do repositório (fumaça do `react-ts`, com `npm install`). |
+
+Resumo de todas as variáveis que a CLI lê:
+
+| Variável | Quando é usada |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | `snakit commit --ai` e `snakit pr --ai` |
+| `SNAKIT_MODEL` | idem, para trocar o modelo |
+| `SNAKIT_SLOW_TESTS` | apenas testes do repositório (contribuição) |
 
 ---
 
@@ -227,7 +270,14 @@ Os testes ficam em `test/` e usam só `node:test` e `node:assert`:
 - `rules.test.js` — cada regra de tipo, escopo e descrição;
 - `files.test.js` — validação de nome e troca de placeholders (usa pastas em `os.tmpdir()`);
 - `ai.test.js` — montagem do prompt e filtragem de arquivos (**nenhum teste chama a API**);
-- `config.test.js` — leitura do `.snakitrc.json`, inclusive arquivo quebrado.
+- `config.test.js` — leitura do `.snakitrc.json`, inclusive arquivo quebrado;
+- `check.test.js` — regras puras do `check` e integração com repo temporário;
+- `templates.test.js` — todos os templates gerados sem `{{`, sem BOM e com Python compilando;
+- `changelog.test.js` — agrupamento e formatação do changelog (pt-BR e en);
+- `bin.test.js` — `--help` da CLI e de cada comando, descobertos dinamicamente;
+- `pack.test.js` — `npm pack --dry-run` com todos os arquivos necessários;
+- `readme.test.js` — comandos do `--help` batem com os do README;
+- `react-ts-slow.test.js` — fumaça com `npm install` + `npm run build` (**só com `SNAKIT_SLOW_TESTS=1`**).
 
 ### Estrutura
 

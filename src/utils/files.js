@@ -2,7 +2,7 @@
 // Copia o template escolhido para a pasta nova e troca os placeholders
 // (textos entre chaves, como {{nome}}) pelos valores reais.
 
-import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync, renameSync, openSync, readSync, closeSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,11 +11,21 @@ const RAIZ_TEMPLATES = path.join(AQUI, '..', 'templates');
 
 // Extensões que consideramos texto seguro para trocar placeholders.
 // Imagens e binários são ignorados: ler e reescrever eles como UTF-8
-// corromperia o arquivo.
+// corromperia o arquivo. Arquivos com extensão fora desta lista passam
+// por uma checagem de bytes nulos (ver ehTexto).
 const EXTENSOES_DE_TEXTO = new Set([
   '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx',
   '.json', '.md', '.html', '.css', '.txt',
-  '.yml', '.yaml', '.env',
+  '.yml', '.yaml', '.env', '.example',
+  '.py', '.toml', '.cfg', '.ini', '.sh', '.sql', '.gitignore',
+]);
+
+// Extensões que nunca são texto: nem passam pelo sniffing, para não
+// reescrever um binário "disfarçado" (ex.: PNG pequeno, sem byte nulo).
+const EXTENSOES_BINARIAS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp', '.avif',
+  '.pdf', '.zip', '.gz', '.tar', '.exe', '.dll', '.so', '.wasm',
+  '.woff', '.woff2', '.ttf', '.otf', '.eot', '.mp3', '.mp4', '.mov',
 ]);
 
 const NOME_VALIDO = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -45,16 +55,31 @@ export function validarNomeProjeto(nome) {
 
 // Catálogo dos templates: nome amigável para o menu/commit + descrição.
 // A ordem define a ordem do menu do `snakit new`.
+// `passoInstalacao` diz como o usuário instala dependências ('npm' ou
+// 'nenhum'); `proximosPassos` (opcional) substitui os comandos genéricos
+// de npm nos "Próximos passos" do `snakit new`.
 const CATALOGO = [
-  { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)' },
-  { valor: 'express-ts', nome: 'Express + TypeScript', descricao: 'Express MVC com TypeScript (ts-node, tsc)' },
-  { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite' },
-  { valor: 'react-ts', nome: 'React + TypeScript', descricao: 'React com Vite e TypeScript' },
-  { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)' },
-  { valor: 'fastapi', nome: 'FastAPI', descricao: 'API Python com FastAPI' },
-  { valor: 'django', nome: 'Django', descricao: 'Projeto Django mínimo' },
-  { valor: 'cli-node', nome: 'CLI Node', descricao: 'CLI em Node.js com Commander e teste' },
-  { valor: 'lib-npm', nome: 'Lib npm', descricao: 'Biblioteca npm (ESM, exports, teste)' },
+  { valor: 'express-mvc', nome: 'Express MVC', descricao: 'Express com estrutura MVC (controllers/, models/, routes/)', passoInstalacao: 'npm' },
+  { valor: 'express-ts', nome: 'Express + TypeScript', descricao: 'Express MVC com TypeScript (ts-node, tsc)', passoInstalacao: 'npm' },
+  { valor: 'react', nome: 'React', descricao: 'React mínimo com Vite', passoInstalacao: 'npm' },
+  { valor: 'react-ts', nome: 'React + TypeScript', descricao: 'React com Vite e TypeScript', passoInstalacao: 'npm' },
+  { valor: 'node-puro', nome: 'Node puro', descricao: 'Node.js puro (index.js + package.json)', passoInstalacao: 'npm' },
+  {
+    valor: 'fastapi',
+    nome: 'FastAPI',
+    descricao: 'API Python com FastAPI',
+    passoInstalacao: 'nenhum',
+    proximosPassos: ['pip install -r requirements.txt', 'uvicorn app.main:app --reload'],
+  },
+  {
+    valor: 'django',
+    nome: 'Django',
+    descricao: 'Projeto Django mínimo que roda',
+    passoInstalacao: 'nenhum',
+    proximosPassos: ['pip install -r requirements.txt', 'python manage.py runserver'],
+  },
+  { valor: 'cli-node', nome: 'CLI Node', descricao: 'CLI em Node.js com Commander e teste', passoInstalacao: 'npm' },
+  { valor: 'lib-npm', nome: 'Lib npm', descricao: 'Biblioteca npm (ESM, exports, teste)', passoInstalacao: 'npm' },
 ];
 
 /**
@@ -106,13 +131,14 @@ export function copiarTemplate(template, destino, config = {}) {
 
   cpSync(origem, destino, { recursive: true });
 
-  // Renomear arquivos que começam com _ para . (npm ignora .gitignore no publish)
+  // Renomear arquivos que começam com _ para . (npm ignora .gitignore no publish).
+  // Só um underscore no início: __init__.py não é placeholder de dotfile.
   function renomearRecursivo(dir) {
     for (const item of readdirSync(dir, { withFileTypes: true })) {
       const caminho = path.join(dir, item.name);
       if (item.isDirectory()) {
         renomearRecursivo(caminho);
-      } else if (item.name.startsWith('_')) {
+      } else if (item.name.startsWith('_') && !item.name.startsWith('__')) {
         renameSync(caminho, path.join(dir, '.' + item.name.slice(1)));
       }
     }
@@ -120,7 +146,23 @@ export function copiarTemplate(template, destino, config = {}) {
   renomearRecursivo(destino);
 }
 
-/** Caminha pela pasta devolvendo só os arquivos de texto. */
+/** Lê os primeiros 8 KB e procura byte nulo: se houver, é binário. */
+function ehTexto(caminho) {
+  let descritor;
+  try {
+    descritor = openSync(caminho, 'r');
+    const buffer = Buffer.alloc(8192);
+    const lidos = readSync(descritor, buffer, 0, 8192, 0);
+    return !buffer.subarray(0, lidos).includes(0);
+  } catch {
+    return false;
+  } finally {
+    if (descritor !== undefined) closeSync(descritor);
+  }
+}
+
+/** Caminha pela pasta devolvendo os arquivos de texto.
+ *  Extensão conhecida (texto ou binária) decide direto; o resto é sniffado. */
 function listarArquivosDeTexto(dir) {
   const encontrados = [];
 
@@ -128,12 +170,34 @@ function listarArquivosDeTexto(dir) {
     const caminho = path.join(dir, item.name);
     if (item.isDirectory()) {
       encontrados.push(...listarArquivosDeTexto(caminho));
-    } else if (EXTENSOES_DE_TEXTO.has(path.extname(item.name))) {
+      continue;
+    }
+    const extensao = path.extname(item.name).toLowerCase();
+    if (EXTENSOES_DE_TEXTO.has(extensao)) {
+      encontrados.push(caminho);
+    } else if (!EXTENSOES_BINARIAS.has(extensao) && ehTexto(caminho)) {
       encontrados.push(caminho);
     }
   }
 
   return encontrados;
+}
+
+/** Renomeia pastas cujo nome tem placeholder (ex.: {{nome_pacote}}/ → meu_app/).
+ *  Entra primeiro nas subpastas para não invalidar os caminhos do nível atual. */
+function renomearPastasComPlaceholder(dir, dados) {
+  for (const item of readdirSync(dir, { withFileTypes: true })) {
+    if (!item.isDirectory()) continue;
+    const caminho = path.join(dir, item.name);
+    renomearPastasComPlaceholder(caminho, dados);
+    const novoNome = item.name.replace(/\{\{(\w+)\}\}/g, (marca, chave) => {
+      const valor = dados[chave];
+      return valor === undefined ? marca : String(valor);
+    });
+    if (novoNome !== item.name) {
+      renameSync(caminho, path.join(dir, novoNome));
+    }
+  }
 }
 
 /**
@@ -144,6 +208,8 @@ function listarArquivosDeTexto(dir) {
  */
 export function substituirPlaceholders(dir, dados) {
   let alterados = 0;
+
+  renomearPastasComPlaceholder(dir, dados);
 
   for (const arquivo of listarArquivosDeTexto(dir)) {
     const texto = readFileSync(arquivo, 'utf8');

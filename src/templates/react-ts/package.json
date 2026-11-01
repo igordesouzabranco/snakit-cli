@@ -1,1 +1,26 @@
-﻿{"name":"{{nome}}","version":"1.0.0","description":"React + TypeScript para {{nome}}","main":"index.js","scripts":{"start":"vite","dev":"vite","build":"vite build","test":"vitest run"},"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0"},"devDependencies":{"vite":"^5.0.0","typescript":"^5.4.0","@vitejs/plugin-react":"^4.2.0","@types/react":"^18.2.0","@types/react-dom":"^18.2.0","vitest":"^1.0.0"},"license":"MIT"}
+{
+  "name": "{{nome}}",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.1"
+  },
+  "license": "MIT"
+}
