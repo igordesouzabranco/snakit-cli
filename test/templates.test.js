@@ -228,3 +228,29 @@ describe('templates — FastAPI', () => {
     if (pythonDisponivel()) compilarPython(destino);
   });
 });
+
+describe('templates — react-ts', () => {
+  test('gera arquivos completos de Vite + TypeScript', () => {
+    const destino = gerarTemplate('react-ts', 'meu-front');
+
+    for (const arquivo of [
+      'package.json', 'index.html', 'vite.config.ts',
+      'tsconfig.json', 'tsconfig.node.json',
+      'src/main.tsx', 'src/App.tsx', 'src/vite-env.d.ts', 'src/App.test.tsx',
+    ]) {
+      assert.ok(existsSync(path.join(destino, arquivo)), `falta ${arquivo}`);
+    }
+
+    const pacote = JSON.parse(readFileSync(path.join(destino, 'package.json'), 'utf8'));
+    assert.equal(pacote.main, undefined, 'package.json não deve ter "main"');
+    assert.equal(pacote.private, true);
+    assert.equal(pacote.type, 'module');
+    assert.equal(pacote.scripts.build, 'tsc && vite build');
+    assert.ok(pacote.scripts.start && pacote.scripts.dev && pacote.scripts.preview && pacote.scripts.test);
+    assert.ok(pacote.devDependencies?.vitest, 'vitest deve estar nas devDependencies');
+    assert.ok(pacote.devDependencies?.typescript, 'typescript deve estar nas devDependencies');
+
+    const viteConfig = readFileSync(path.join(destino, 'vite.config.ts'), 'utf8');
+    assert.ok(viteConfig.includes('@vitejs/plugin-react'));
+  });
+});
