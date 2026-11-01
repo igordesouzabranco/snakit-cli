@@ -2,8 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# Permissão mínima: o CI só precisa ler o código.
+permissions:
+  contents: read
+
+# O runner não tem identidade de git: sem isto, os testes que fazem
+# `git commit` falham com "Author identity unknown".
+env:
+  GIT_AUTHOR_NAME: CI
+  GIT_AUTHOR_EMAIL: ci@snakit.dev
+  GIT_COMMITTER_NAME: CI
+  GIT_COMMITTER_EMAIL: ci@snakit.dev
 
 jobs:
   test:
