@@ -1,4 +1,4 @@
-# snakit
+# Snakit
 
 CLI com **scaffolder de projetos** e **gerador de mensagens de commit** no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/).
 
