@@ -1,55 +1,47 @@
-# Snakit
+# snakit
 
-CLI com **scaffolder de projetos** e **gerador de mensagens de commit** no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/).
+[![npm](https://img.shields.io/npm/v/snakit)](https://www.npmjs.com/package/snakit)
+[![licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-Ferramentas para o dia a dia do repositório, nada de mágica:
+Toolkit de linha de comando para quem trabalha com Git e Node.js: cria projetos a partir de templates, sugere mensagens de commit no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/), valida, gera changelog, versiona e revisa o que vai ser commitado.
 
-| Comando | O que faz |
-| --- | --- |
-| `snakit new <nome>` | Cria projeto (9 templates). `--template`, `--yes`, `--pm`, `--ts`, `--no-install`, `--no-git`. |
-| `snakit commit` | Sugere mensagem. `--dry-run`, `--yes`, `--all`, `--push`, `--type`, `--scope`, `-m`, `--message`, `--break`, `--ai`, `--allow-send`. |
-| `snakit hook` | `install` / `uninstall` / `status` (`--ai`). |
-| `snakit lint` | Valida mensagem. `[mensagem]`, `--from`, `--to`. |
-| `snakit changelog` | Gera `CHANGELOG.md`. `--from`, `--to`, `--dry-run`, `--stdout`. |
-| `snakit release` | Bump (`patch/minor/major`), `--dry-run` padrão. |
-| `snakit undo` | `git reset --soft HEAD~1`. |
-| `snakit amend` | Reescreve mensagem do último commit. |
-| `snakit add <recurso>` | Adiciona recurso (`eslint`, `prettier`, `vitest`, `docker`, `ci`, `husky`, `env`, `license`). `--list`. |
-| `snakit generate` | Gera arquivo MVC (`controller`, `model`, `route`, `resource <nome>`). |
-| `snakit templates` | `list`, `add <repo> <nome>`, `remove <nome>`. |
-| `snakit config` | `get`, `set`, `list`, `path`. |
-| `snakit init` | Cria `.snakitrc.json` comentado. |
-| `snakit doctor` | Verifica ambiente e configuração. |
-| `snakit pr` | Gera título/descrição PR (`--base`, `--ai`, `--copy`). |
-| `snakit check` | Revisão do stage (`--strict`, `--output json`). |
-| `snakit readme` | Gera `README.md` (`--force`). |
-| `snakit stats` | Estatísticas (`--since`, `--until`, `--output json`). |
-| `snakit branch <desc>` | Sugere nome `tipo/descricao-kebab`. |
+**Funciona offline e de graça.** A IA é opcional e só roda se você pedir com `--ai`.
 
-**O `snakit commit` funciona offline e de graça.** O `snakit new` precisa de internet apenas para o `npm install` (use `--no-install` para evitar). A IA é opcional e só roda se você pedir com `--ai`.
-
----
-
-## Requisitos
-
-- Node.js **18 ou superior**
-- Git instalado (para o `git init` e para o `snakit commit`)
+```bash
+npx snakit new minha-loja      # cria um projeto a partir de um template
+git add . && npx snakit commit # sugere a mensagem e commita depois de você confirmar
+```
 
 ## Instalação
 
 ```bash
-# sem instalar nada, direto no projeto
-npx snakit new minha-loja
-
-# instalar globalmente
-npm install -g snakit
-
-# clonando o repositório (para contribuir)
-git clone https://github.com/igordesouzabranco/snakit-cli.git
-cd snakit-cli
-npm install
-npm link          # o comando `snakit` passa a apontar para a sua cópia
+npm install -g snakit    # instala o comando `snakit`
+npx snakit --help        # ou use sem instalar
 ```
+
+Requisitos: Node.js 18 ou superior e Git.
+
+## O que dá para fazer
+
+| Área | Comandos |
+| --- | --- |
+| **Criar projetos** | `new` (9 templates), `add` (eslint, prettier, vitest, docker, ci, husky, env, license), `generate` (controller, model, route e resource no Express MVC), `templates` (seus próprios templates) |
+| **Commits** | `commit` (`--all`, `--push`, `--type`, `--scope`, `-m`, `--break`, `--dry-run`, `--yes`), `amend`, `undo`, `branch` |
+| **Qualidade** | `lint` (valida mensagens), `check` (revisa o stage: segredos, `console.log`, `debugger`, TODO, arquivos grandes), `hook` (hook `prepare-commit-msg`) |
+| **Versões** | `changelog`, `release` (calcula o bump, atualiza o `package.json` e cria a tag), `pr` (título e descrição de Pull Request), `stats` |
+| **Projeto** | `readme`, `config`, `init`, `doctor` |
+
+### Templates
+
+Express MVC, Express + TypeScript, React, React + TypeScript, Node puro, FastAPI, Django, CLI em Node e biblioteca npm.
+
+### Pensado para o dia a dia
+
+- **Seguro por padrão:** o `check` acusa chaves e tokens no stage e nunca imprime o segredo inteiro. O diff só vai para uma API externa se você pedir, depois de uma confirmação.
+- **Sem configuração:** se o Git não tem nome e e-mail, o `snakit` avisa e commita com uma identidade temporária, sem gravar nada na sua configuração. O `snakit doctor` mostra como configurar a sua.
+- **Mensagens claras:** os erros dizem o problema e o próximo passo, e o `.snakitrc.json` quebrado nunca derruba a CLI.
+- **Testado:** mais de 200 testes automatizados, rodando no GitHub Actions em Ubuntu e Windows, com Node 18, 20 e 22.
 
 ## `snakit new <nome>`
 
