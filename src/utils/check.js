@@ -42,8 +42,10 @@ export function mascararSegredos(texto) {
   return saida;
 }
 
+/** Cria um achado já mascarado: NENHUM trecho sai daqui com segredo inteiro,
+ *  nem os avisos (um console.log com a chave não pode vazar no log de CI). */
 function achado(nivel, regra, arquivo, linha, trecho) {
-  return { nivel, regra, arquivo, linha, trecho };
+  return { nivel, regra, arquivo, linha, trecho: mascararSegredos(trecho) };
 }
 
 /**

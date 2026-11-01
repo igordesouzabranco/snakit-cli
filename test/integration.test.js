@@ -3,10 +3,18 @@
 
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { init, isGitRepo, getStagedFiles, add, commit, getCurrentBranch } from '../src/utils/git.js';
+
+// O runner do GitHub Actions não tem identidade de git (~/.gitconfig vazio).
+// Definimos as variáveis ANTES de qualquer commit para os testes não
+// dependerem da máquina de quem roda.
+process.env.GIT_AUTHOR_NAME = 'CI';
+process.env.GIT_AUTHOR_EMAIL = 'ci@snakit.dev';
+process.env.GIT_COMMITTER_NAME = 'CI';
+process.env.GIT_COMMITTER_EMAIL = 'ci@snakit.dev';
 
 const temporarias = [];
 
@@ -27,7 +35,8 @@ describe('git — integração', () => {
     const pasta = pastaTemporaria();
     init(pasta);
     assert.ok(isGitRepo(pasta));
-    assert.equal(getCurrentBranch(pasta), 'master'); // ou main, depende do git
+    // A branch inicial depende de init.defaultBranch da máquina: master ou main.
+    assert.ok(['master', 'main'].includes(getCurrentBranch(pasta)));
   });
 
   test('stage vazio retorna vazio', () => {

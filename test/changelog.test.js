@@ -5,26 +5,15 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parsearAssunto, formatarItem, agruparCommits } from '../src/commands/changelog.js';
+import { criarRepoTemporario, limparPastasTemporarias } from './helpers/git.js';
+import { parsearAssunto, formatarItem, agruparCommits, tituloSecao } from '../src/commands/changelog.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const temporarias = [];
 
-function pastaTemporaria(prefixo = 'snakit-changelog-') {
-  const pasta = mkdtempSync(path.join(tmpdir(), prefixo));
-  temporarias.push(pasta);
-  return pasta;
-}
-
-after(() => {
-  for (const pasta of temporarias) {
-    rmSync(pasta, { recursive: true, force: true });
-  }
-});
+after(limparPastasTemporarias);
 
 describe('parsearAssunto', () => {
   test('separa tipo, escopo e descrição', () => {
@@ -123,10 +112,27 @@ describe('agruparCommits — en', () => {
   });
 });
 
+describe('tituloSecao', () => {
+  test('HEAD vira "Não lançado" em pt-BR e "Unreleased" em en', () => {
+    assert.equal(tituloSecao('HEAD', 'pt-BR'), 'Não lançado');
+    assert.equal(tituloSecao('HEAD', 'en'), 'Unreleased');
+    assert.equal(tituloSecao(undefined, 'pt-BR'), 'Não lançado');
+  });
+
+  test('tag vira versão com data, sem o v na frente', () => {
+    assert.equal(tituloSecao('v1.3.2', 'pt-BR', '2026-10-31'), '1.3.2 — 2026-10-31');
+    assert.equal(tituloSecao('1.3.2', 'en', '2026-10-31'), '1.3.2 — 2026-10-31');
+  });
+
+  test('sem data fica só a versão', () => {
+    assert.equal(tituloSecao('v2.0.0', 'pt-BR'), '2.0.0');
+  });
+});
+
 describe('snakit changelog — integração', () => {
   function rodarChangelog(pasta, ...args) {
     try {
-      const saida = execFileSync('node', [path.join(RAIZ, 'bin', 'snakit.js'), 'changelog', '--stdout', ...args], {
+      const saida = execFileSync(process.execPath, [path.join(RAIZ, 'bin', 'snakit.js'), 'changelog', '--stdout', ...args], {
         cwd: pasta,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -138,10 +144,8 @@ describe('snakit changelog — integração', () => {
   }
 
   function repoComCommits() {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
-    execFileSync('git', ['config', 'user.email', 'teste@snakit.dev'], { cwd: pasta });
-    execFileSync('git', ['config', 'user.name', 'Snakit'], { cwd: pasta });
+    // Identidade e branch vêm do helper (hermético para CI).
+    const pasta = criarRepoTemporario();
     for (const [indice, mensagem] of [
       'feat: adiciona rota',
       'fix(api): corrige validação',
@@ -172,5 +176,14 @@ describe('snakit changelog — integração', () => {
     const { saida } = rodarChangelog(pasta);
     assert.ok(saida.includes('## Unreleased'));
     assert.ok(saida.includes('### Features'));
+  });
+
+  test('--to <tag> usa "## versão — data" na seção', () => {
+    const pasta = repoComCommits();
+    execFileSync('git', ['tag', 'v1.0.0'], { cwd: pasta });
+    const { status, saida } = rodarChangelog(pasta, '--to', 'v1.0.0');
+    assert.equal(status, 0);
+    assert.match(saida, /## 1\.0\.0 — \d{4}-\d{2}-\d{2}/);
+    assert.ok(!saida.includes('## v1.0.0'), 'não deve imprimir o v na frente');
   });
 });

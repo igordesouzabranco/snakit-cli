@@ -5,10 +5,10 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { criarRepoTemporario, pastaTemporaria, limparPastasTemporarias } from './helpers/git.js';
 import {
   extrairLinhasAdicionadas,
   analisarLinhas,
@@ -20,19 +20,8 @@ import {
 } from '../src/utils/check.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const temporarias = [];
 
-function pastaTemporaria(prefixo = 'snakit-check-') {
-  const pasta = mkdtempSync(path.join(tmpdir(), prefixo));
-  temporarias.push(pasta);
-  return pasta;
-}
-
-after(() => {
-  for (const pasta of temporarias) {
-    rmSync(pasta, { recursive: true, force: true });
-  }
-});
+after(limparPastasTemporarias);
 
 /** Monta um diff fake no formato git diff --cached -U0. */
 function diffFake(arquivo, linhasAdicionadas) {
@@ -127,6 +116,17 @@ describe('regras de aviso', () => {
     const achados = analisarLinhas(linhasDe('src/app.ts', ['console.debug(1);', 'debugger;']));
     assert.ok(achados.some((a) => a.regra === 'console-debug'));
     assert.ok(achados.some((a) => a.regra === 'debugger'));
+  });
+
+  test('aviso com segredo na linha também sai mascarado (não vaza no log de CI)', () => {
+    const achados = analisarLinhas(
+      linhasDe('src/app.js', ['console.log("AKIAIOSFODNN7EXAMPLE")']),
+    );
+    const aviso = achados.find((a) => a.regra === 'console-debug');
+    assert.ok(aviso, 'esperava aviso de console-debug');
+    assert.equal(aviso.nivel, 'aviso');
+    assert.match(aviso.trecho, /AKIA…/);
+    assert.ok(!aviso.trecho.includes('AKIAIOSFODNN7EXAMPLE'), 'trecho do aviso vazou a chave inteira');
   });
 
   test('não acusa console.log em test/, bin/, scripts/ nem *.test.*', () => {
@@ -234,7 +234,7 @@ describe('ehBinario', () => {
 describe('snakit check — integração (CLI)', () => {
   function rodarCheck(pasta, ...args) {
     try {
-      const saida = execFileSync('node', [path.join(RAIZ, 'bin', 'snakit.js'), 'check', ...args], {
+      const saida = execFileSync(process.execPath, [path.join(RAIZ, 'bin', 'snakit.js'), 'check', ...args], {
         cwd: pasta,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -249,8 +249,7 @@ describe('snakit check — integração (CLI)', () => {
   }
 
   test('chave falsa no stage dá exit 1 e mostra o arquivo:linha', () => {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    const pasta = criarRepoTemporario();
     writeFileSync(path.join(pasta, 'a.js'), 'const k="AKIAIOSFODNN7EXAMPLE"\n');
     execFileSync('git', ['add', 'a.js'], { cwd: pasta });
 
@@ -262,16 +261,14 @@ describe('snakit check — integração (CLI)', () => {
   });
 
   test('stage vazio sai com 0 e avisa', () => {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    const pasta = criarRepoTemporario();
     const { status, saida } = rodarCheck(pasta);
     assert.equal(status, 0);
     assert.match(saida, /Nada no stage para revisar/);
   });
 
   test('--output json devolve erros e avisos', () => {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    const pasta = criarRepoTemporario();
     writeFileSync(path.join(pasta, 'a.js'), 'console.log(1);\n');
     execFileSync('git', ['add', 'a.js'], { cwd: pasta });
 
@@ -282,9 +279,19 @@ describe('snakit check — integração (CLI)', () => {
     assert.equal(json.avisos[0].regra, 'console-debug');
   });
 
+  test('--output json também mascara o segredo no aviso', () => {
+    const pasta = criarRepoTemporario();
+    writeFileSync(path.join(pasta, 'a.js'), 'console.log("AKIAIOSFODNN7EXAMPLE")\n');
+    execFileSync('git', ['add', 'a.js'], { cwd: pasta });
+
+    const { saida } = rodarCheck(pasta, '--output', 'json');
+    assert.ok(!saida.includes('AKIAIOSFODNN7EXAMPLE'), 'JSON vazou a chave inteira');
+    const json = JSON.parse(saida);
+    assert.match(json.avisos[0].trecho, /AKIA…/);
+  });
+
   test('--strict faz aviso sair com 1', () => {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    const pasta = criarRepoTemporario();
     writeFileSync(path.join(pasta, 'a.js'), 'debugger;\n');
     execFileSync('git', ['add', 'a.js'], { cwd: pasta });
 
@@ -293,8 +300,7 @@ describe('snakit check — integração (CLI)', () => {
   });
 
   test('.env no stage dá exit 1 mesmo sem segredo no diff', () => {
-    const pasta = pastaTemporaria();
-    execFileSync('git', ['init', '-q'], { cwd: pasta });
+    const pasta = criarRepoTemporario();
     writeFileSync(path.join(pasta, '.env'), 'QUALQUER=coisa\n');
     execFileSync('git', ['add', '.env'], { cwd: pasta });
 
